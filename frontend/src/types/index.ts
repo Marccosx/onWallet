@@ -1,4 +1,5 @@
 interface IAccount {
+    id: string;
     name: string;
     type: string;
     balance: number;
@@ -6,6 +7,7 @@ interface IAccount {
 }
 
 interface ICategory {
+    id: string;
     name: string;
     color: string;
     icon: string;
@@ -23,8 +25,11 @@ interface ITransaction {
 }
 
 interface IBudget{
+    id: string;
     category: ICategory;
     month: Date;
     limit: number;
 
 } 
+
+export type { IAccount, ICategory, ITransaction, IBudget };
