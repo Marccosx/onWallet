@@ -1,11 +1,10 @@
 import type { Transaction } from "@prisma/client";
 
-export interface ITranscationService{
+export interface ITransactionService{
 
-    getAllTransactions(): Promise<Transaction[]>
-    getTransactionById(): Promise<Transaction>
-    createTransaction(): Promise<Transaction>
-    updateTransaction(): Promise<Transaction>
-    deleteTransaction(): Promise<void>
-    searchLastTransaction(): Promise<[]>
+    getAllTransactions(data: string): Promise<Transaction[]>
+    getTransactionById(id: string): Promise<Transaction> 
+    createTransaction(data: any): Promise<Transaction>
+    updateTransaction(id: string, data: any): Promise<Transaction>
+    deleteTransaction(id: string): Promise<void>
 }

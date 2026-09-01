@@ -1,4 +1,3 @@
-
 import express from "express";
 import AccountController from "../controllers/account.controller.js";
 import AccountService from "../services/account.service.js";
