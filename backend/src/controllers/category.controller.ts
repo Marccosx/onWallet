@@ -19,6 +19,23 @@ export class CategoryController{
         }
     }
 
+    async getCategoryById(req: Request, res: Response): Promise<void>{
+        const id = req.params["id"] as string;
+        if(!id){
+            res.status(400).json({error:"Response params id is missing"})
+        }
+        try{
+            const category = await this.categoryService.getCategoryById(id)
+            res.status(200).json(category)
+        }catch(error){
+            if(error instanceof Error){
+                res.status(400).json({error: error.message})
+            }else{
+                res.status(500).json({error: "Unexpected error on get category by id"})
+            }
+        }
+    }
+
     async createCategory(req: Request, res: Response): Promise<void>{
         if(!req.body){
             res.status(400).json({error:"Respose body is missing"})

@@ -16,6 +16,20 @@ export class TransactionController {
         }
     }
 
+    async getTransactionById(req: Request, res: Response) {
+        const id = req.params.id as string;
+        if(!id){
+            res.status(400).json({error: "Request params id is missing"});
+            return;
+        }
+        try {
+            const transaction = await this.transactionService.getTransactionById(id);
+            res.json(transaction);
+        } catch (error) {
+            res.status(404).json({ error: (error as Error).message });
+        }
+    }
+
     async createTransaction(req: Request, res: Response) {
         const data = req.body;
         if(!data){

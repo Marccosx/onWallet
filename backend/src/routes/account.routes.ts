@@ -25,6 +25,28 @@ const accountController = new AccountController(accountService);
  */
 accountRouter.get("/", (req,res) => accountController.getAccounts(req, res));
 
+
+/**
+ * @swagger
+ * /accounts/{id}:
+ *   get:
+ *     summary: Busca uma conta por ID
+ *     tags: [Accounts]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID da conta que será buscada
+ *     responses:
+ *       200:
+ *         description: Conta retornada com sucesso
+ *       404:
+ *         description: Conta não encontrada
+ */
+accountRouter.get("/:id",(req, res) => accountController.getAccountById(req, res));
+
 /**
  * @swagger
  * /accounts:

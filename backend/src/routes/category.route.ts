@@ -32,6 +32,26 @@ categoryRouter.get('/', (req, res)=> categoryController.getAllCategories(req, re
 
 /**
  * @swagger
+ * /categories/{id}:
+ *   get:
+ *     summary: Busca uma categoria por ID
+ *     tags: [Categories]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID da categoria que será buscada
+ *     responses:
+ *       200:
+ *         description: Categoria retornada com sucesso
+ *       404:
+ *         description: Categoria não encontrada
+ */
+categoryRouter.get('/:id', (req, res)=> categoryController.getCategoryById(req,res));
+/**
+ * @swagger
  * /categories:
  *   post:
  *     summary: Cria uma nova categoria

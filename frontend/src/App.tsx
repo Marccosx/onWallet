@@ -1,6 +1,5 @@
 
 import { Navigate, Route, Routes } from 'react-router-dom'
-import './App.css'
 import { Accounts } from './pages/Accounts'
 import { Categories } from './pages/Categories'
 

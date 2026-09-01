@@ -33,6 +33,26 @@ transactionRouter.get("/", (req,res) => transactionController.getTransactions(re
 
 /**
  * @swagger
+ * /transactions/{id}:
+ *   get:
+ *     summary: Busca uma transação por ID
+ *     tags: [Transactions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID da transação que será buscada
+ *     responses:
+ *       200:
+ *         description: Transação retornada com sucesso
+ *       404:
+ *         description: Transação não encontrada
+ */
+transactionRouter.get("/:id",(req, res) => transactionController.getTransactionById(req, res));
+/**
+ * @swagger
  * /transactions:
  *   post:
  *     summary: Cria uma nova transação
