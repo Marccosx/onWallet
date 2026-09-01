@@ -39,14 +39,14 @@ export class TransactionService implements ITransactionService {
   }
 
   async createTransaction(data: any): Promise<Transaction> {
+    const requiredFields = ['accountId', 'amount', 'type'];
     if (!data) {
       throw new Error("Transaction data is required");
-    }else if (!data.accountId ) {
-      throw new Error("Missing accountId required transaction fields");
-    }else if (!data.amount) {
-      throw new Error("Missing amount required transaction fields");
-    }else if (!data.type) {
-      throw new Error("Missing type required transaction fields");
+    }
+    for (const field of requiredFields) {
+      if (!data[field]) {
+        throw new Error(`Missing ${field} required transaction fields`);
+      }
     }
     const type = data.type;
     try {
@@ -55,10 +55,9 @@ export class TransactionService implements ITransactionService {
          prisma.account.update({
             where: {id: data.accountId}, 
             data:{
-                balance:{
-                     increment: type === "INCOME" ? data.amount : 0,
-                     decrement: type === "EXPENSE" ? data.amount : 0,
-                    }
+                balance: type === "INCOME" 
+                  ? { increment: data.amount } 
+                  : { decrement: data.amount }
                 }
             }),
         ]);
@@ -74,27 +73,29 @@ export class TransactionService implements ITransactionService {
     if (!transaction) {
       throw new Error("Transaction not found");
     }
+
+    // Mescla os dados antigos com os novos que vieram na requisição (Partial Update)
+    const newData = { ...transaction, ...data };
+
     try {
       const [transactionRevert,updatedTransaction ] = await prisma.$transaction([
             prisma.account.update({
                 where:{id: transaction.accountId},
                 data:{
-                    balance:{
-                        increment: transaction.type === "EXPENSE" ? transaction.amount : 0,
-                        decrement: transaction.type === "INCOME" ? transaction.amount : 0,
-                    }
+                    balance: transaction.type === "EXPENSE" 
+                      ? { increment: transaction.amount } 
+                      : { decrement: transaction.amount }
                 }
             }),
             prisma.transaction.update({
                 where: { id: id },
                 data: data,
             }),
-            prisma.account.update({where:{id: data.accountId},
+            prisma.account.update({where:{id: newData.accountId},
                 data:{
-                    balance:{
-                        increment: data.type === "INCOME" ? data.amount : 0,
-                        decrement: data.type === "EXPENSE" ? data.amount : 0,
-                    }
+                    balance: newData.type === "INCOME" 
+                      ? { increment: newData.amount } 
+                      : { decrement: newData.amount }
                 }
             }),
         ]);
@@ -114,10 +115,9 @@ export class TransactionService implements ITransactionService {
           await prisma.account.update({
             where: { id: transaction.accountId },
             data: {
-              balance: {
-                increment: transaction.type === "EXPENSE" ? transaction.amount : 0,
-                decrement: transaction.type === "INCOME" ? transaction.amount : 0,
-              }
+              balance: transaction.type === "EXPENSE" 
+                ? { increment: transaction.amount } 
+                : { decrement: transaction.amount }
             }
         });
         await prisma.transaction.delete({ where: { id: id } });
