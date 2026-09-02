@@ -16,18 +16,18 @@ interface ICategory {
 
 interface ITransaction {
     id: string;
-    name: string;
+    description: string;
     amount: number;
-    date: Date;
-    account: IAccount;
-    category: ICategory;
+    date: string;
+    accountId: string;
+    categoryId: string;
     type: string;
 }
 
 interface IBudget{
     id: string;
-    category: ICategory;
-    month: Date;
+    category: string;
+    month: string;
     limit: number;
 
 } 
