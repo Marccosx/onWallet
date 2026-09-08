@@ -18,7 +18,7 @@ interface ITransaction {
     id: string;
     description: string;
     amount: number;
-    date: string;
+    create_at: string;
     accountId: string;
     categoryId: string;
     type: string;
@@ -26,10 +26,10 @@ interface ITransaction {
 
 interface IBudget{
     id: string;
-    category: string;
+    categoryId: string;
     month: string;
     limit: number;
-
+    spent?: number;
 } 
 
 export type { IAccount, ICategory, ITransaction, IBudget };

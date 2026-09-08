@@ -1,19 +1,23 @@
 
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navbar } from './components/Navbar'
 import { Accounts } from './pages/Accounts'
 import { Categories } from './pages/Categories'
 import { Transactions } from './pages/Transactions';
+import { Budgets } from './pages/Budgets';
 
 function App() {
   return (
-    <>
-     <Routes>
-      <Route path="/transactions/*" element={<Transactions/>}></Route>
-      <Route path="/accounts/*" element={<Accounts />} />
-      <Route path="/categories/*" element={<Categories/>}/>
-      <Route path="/" element={<Navigate to="/accounts" />} />
-     </Routes>
-    </>
+    <div className="min-h-screen bg-gray-50 pb-12">
+      <Navbar />
+      <Routes>
+        <Route path="/budgets/*" element={<Budgets/>}/>
+        <Route path="/transactions/*" element={<Transactions/>}/>
+        <Route path="/accounts/*" element={<Accounts />} />
+        <Route path="/categories/*" element={<Categories/>}/>
+        <Route path="/" element={<Navigate to="/accounts" />} />
+      </Routes>
+    </div>
   )
 }
 
