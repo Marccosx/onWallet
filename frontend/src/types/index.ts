@@ -1,7 +1,7 @@
 interface IAccount {
     id: string;
     name: string;
-    type: string;
+    tag?: string;
     balance: number;
     color: string;
 }
@@ -20,8 +20,9 @@ interface ITransaction {
     amount: number;
     create_at: string;
     accountId: string;
+    destinationAccountId?: string;
     categoryId: string;
-    type: string;
+    type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
 }
 
 interface IBudget{

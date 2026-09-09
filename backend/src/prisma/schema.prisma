@@ -13,12 +13,14 @@ datasource db {
 model Account {
   id String @id @default(uuid())
   name String
-  type TypeAccount
+  tag String?
   balance Float @default(0)
   color String?
   created_at DateTime @default(now())
-  transactions Transaction[]
 
+
+transactions Transaction[] @relation("TransactionAccount")
+transfersReceived Transaction[] @relation("TransferDestination")
   @@map("account")
 }
 
@@ -40,12 +42,14 @@ model Transaction{
   amount Float
   type String
   create_at DateTime @default(now())
-  edited_at DateTime?
+  edited_at DateTime? @updatedAt
   accountId String
   categoryId String
   notes String?
+  destinationAccountId String?
 
-  account Account @relation(fields: [accountId], references: [id])
+  destinationAccount Account? @relation("TransferDestination", fields:[destinationAccountId], references:[id])
+  account Account @relation("TransactionAccount", fields: [accountId], references: [id])
   category Category @relation(fields: [categoryId], references: [id])
   @@map("transaction")
 }
@@ -58,13 +62,6 @@ model Budget{
 
   category Category @relation(fields: [categoryId], references: [id])
   @@map("budget")
-}
-
-enum TypeAccount {
-  CHECKING
-  SAVINGS
-  CREDIT_CARD
-  CASH
 }
 
 enum TypeCategory{

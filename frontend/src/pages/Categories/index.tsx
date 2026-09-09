@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 import {CategoryService} from '../../services/category.service';
 import type { ICategory } from "../../types";
+import { renderIcon, AVAILABLE_ICONS } from "../../utils/icons";
 
 export function Categories(){
     const [categories, setCategories] = useState<ICategory[]>([]);
@@ -143,10 +144,10 @@ const handleSaveCategory = async (e: React.FormEvent) => {
           <div key={category.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 relative group transition-all hover:shadow-md">
             
             <div 
-              className="w-12 h-12 flex items-center justify-center rounded-full text-2xl flex-shrink-0"
+              className="w-12 h-12 flex items-center justify-center rounded-full flex-shrink-0"
               style={{ backgroundColor: `${category.color}20`, color: category.color || '#333' }}
             >
-              {category.icon}
+              {renderIcon(category.icon, 24)}
             </div>
             
             <div className="flex-1 min-w-0">
@@ -200,19 +201,19 @@ const handleSaveCategory = async (e: React.FormEvent) => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Ícone</label>
                   <div className="relative">
                     {/* Botão que mostra o emoji selecionado */}
-                    <div className="w-full border border-gray-300 rounded-lg p-2 flex items-center justify-center text-2xl bg-gray-50 h-11">
-                        {formData.icon}
+                    <div className="w-full border border-gray-300 rounded-lg p-2 flex items-center justify-center bg-gray-50 h-11" style={{ color: formData.color }}>
+                        {renderIcon(formData.icon, 24)}
                     </div>
-                    {/* Grid de opções de emojis comuns para finanças */}
-                    <div className="mt-2 p-2 border border-gray-200 rounded-lg bg-white shadow-sm grid grid-cols-6 gap-1 h-32 overflow-y-auto">
-                        {['🛒', '🍔', '🏠', '⚡', '💧', '🚗', '🏥', '🎮', '👕', '✈️', '📱', '📚', '💼', '💰', '💳', '🛍️', '🎓', '🐶', '🔧', '🚌', '🍽️', '🏋️', '🎬', '🎁'].map(emoji => (
+                    {/* Grid de opções de ícones */}
+                    <div className="mt-2 p-2 border border-gray-200 rounded-lg bg-white shadow-sm grid grid-cols-6 gap-1 h-40 overflow-y-auto">
+                        {AVAILABLE_ICONS.map(iconName => (
                             <button
-                                key={emoji}
+                                key={iconName}
                                 type="button"
-                                onClick={() => setFormData({...formData, icon: emoji})}
-                                className={`text-xl p-1 rounded hover:bg-emerald-50 transition-colors cursor-pointer ${formData.icon === emoji ? 'bg-emerald-100 ring-1 ring-emerald-400' : ''}`}
+                                onClick={() => setFormData({...formData, icon: iconName})}
+                                className={`p-2 flex justify-center items-center rounded hover:bg-emerald-50 transition-colors cursor-pointer text-gray-600 hover:text-emerald-600 ${formData.icon === iconName ? 'bg-emerald-100 ring-1 ring-emerald-400 text-emerald-600' : ''}`}
                             >
-                                {emoji}
+                                {renderIcon(iconName, 20)}
                             </button>
                         ))}
                     </div>

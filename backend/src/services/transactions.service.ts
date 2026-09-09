@@ -16,14 +16,14 @@ export class TransactionService implements ITransactionService {
         });
         return transaction;
       } catch (error) {
-        throw new Error("Transactions not founds");
+        throw new Error((error as Error).message);
       }
     } else {
       try {
         const transaction = await prisma.transaction.findMany();
         return transaction;
       } catch (error) {
-        throw new Error("Transactions not founds");
+       throw new Error((error as Error).message);
       }
     }
   }
@@ -33,7 +33,7 @@ export class TransactionService implements ITransactionService {
       where: { id: id },
     });
     if (!transaction) {
-      throw new Error("Transaction not found");
+      throw new Error("Transaction data is required");
     }
     return transaction;
   }
@@ -49,6 +49,28 @@ export class TransactionService implements ITransactionService {
       }
     }
     const type = data.type;
+    if(type === 'TRANSFER'){
+      try{
+        const [transaction] = await prisma.$transaction([
+          prisma.transaction.create({ data: data }),
+          prisma.account.update({
+              where: {id: data.accountId}, 
+              data:{ 
+                balance: {decrement: data.amount}
+              }
+              }),
+          prisma.account.update({
+              where: {id: data.destinationAccountId},
+              data: {
+                balance: {increment: data.amount}
+              }
+            }),
+          ]);
+        return transaction;  
+      }catch(error){
+         throw new Error((error as Error).message);
+      }
+    }
     try {
       const [transaction] = await prisma.$transaction([
          prisma.transaction.create({ data: data }),
@@ -64,19 +86,59 @@ export class TransactionService implements ITransactionService {
         return transaction;  
 
     } catch (error) {
-      throw new Error("Error creating transaction");
+      throw new Error((error as Error).message);
     }
   }
 
   async updateTransaction(id: string, data: any): Promise<Transaction> {
     let transaction = await this.getTransactionById(id);
-    if (!transaction) {
-      throw new Error("Transaction not found");
+    if (!transaction ) {
+      throw new Error("Transaction data is required");
+    }if(transaction.type === "TRANSFER" && !transaction.destinationAccountId || data.type === "TRANSFER" && !data.destinationAccountId){
+      throw new Error("Transaction type tranfer needs a destination account")
     }
 
     // Mescla os dados antigos com os novos que vieram na requisição (Partial Update)
     const newData = { ...transaction, ...data };
+    if(transaction.type === "TRANSFER" ){
+      //Mapa para somar os saldos
+      const balanceChanges: Record<string, number> ={}
+      //Reverte a transacao antiga
+      balanceChanges[transaction.accountId] = (balanceChanges[transaction.accountId] || 0) + transaction.amount;
+      if(transaction.destinationAccountId){
+        balanceChanges[transaction.destinationAccountId] = (balanceChanges[transaction.destinationAccountId] || 0) - transaction.amount
+      }
+      // Aplica a nova transacao
+      balanceChanges[data.accountId] = (balanceChanges[data.accountId] || 0) - data.amount;
+      if(data.destinationAccountId){
+        balanceChanges[data.destinationAccountId] = (balanceChanges[data.destinationAccountId] || 0) + data.amount;
+      }
 
+      const accountUpdates = Object.entries(balanceChanges)
+                             .filter(([id, amountChange])=> amountChange !== 0)
+                             .map(([id, amountChange])=>{
+                              return prisma.account.update({
+                                where:{id},
+                                data:{
+                                  balance: amountChange > 0 
+                                  ? {increment:amountChange}
+                                  :{decrement:Math.abs(amountChange)}
+                                }
+                              });
+                            });
+      try{
+        const [updateTransaction] = await prisma.$transaction([
+            prisma.transaction.update({
+              where: {id},
+              data: data
+            }),
+            ...accountUpdates
+        ]);
+        return updateTransaction;
+      }catch(error){
+        throw new Error((error as Error).message);
+      }
+    }
     try {
       const [transactionRevert,updatedTransaction ] = await prisma.$transaction([
             prisma.account.update({
@@ -101,7 +163,7 @@ export class TransactionService implements ITransactionService {
         ]);
     return updatedTransaction;
     } catch (error) {
-        throw new Error("Error updating transaction");
+       throw new Error((error as Error).message);
     }
   }
 
@@ -109,6 +171,33 @@ export class TransactionService implements ITransactionService {
     let transaction = await this.getTransactionById(id);
     if (!transaction) {
       throw new Error("Transaction not found");
+    }
+    if(transaction.type === "TRANSFER" && transaction.destinationAccountId){
+      try{
+        await prisma.$transaction([
+           //reverte o valor da conta remetente
+           prisma.account.update({
+             where:{id: transaction.accountId},
+             data:{
+               balance: {increment: transaction.amount}
+              }
+            }),
+            //reverte o valor da conta destino
+            prisma.account.update({
+              where: {id: transaction.destinationAccountId },
+              data:{
+                balance: {decrement: transaction.amount}
+              }
+            }),
+            prisma.transaction.delete({
+              where:{id: id}
+            }),
+          ])
+          return;
+      }catch(error){
+        throw new Error((error as Error).message);
+      }
+
     }
     try {
       await prisma.$transaction(async (prisma) => {
@@ -122,8 +211,9 @@ export class TransactionService implements ITransactionService {
         });
         await prisma.transaction.delete({ where: { id: id } });
       });
+      return;
     } catch (error) {
-      throw new Error("Error deleting transaction");
+      throw new Error((error as Error).message);
     }
   }
 

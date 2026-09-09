@@ -25,7 +25,14 @@ O projeto é dividido em um monorepo contendo o Frontend e o Backend separados.
 - **Node.js + Express** para roteamento de APIs RESTful.
 - **TypeScript** mantendo a consistência com o frontend.
 - **Prisma ORM** para comunicação elegante com o banco de dados.
-- **SQLite** como banco de dados relacional leve e sem dor de cabeça (ideal para o MVP).
+- **SQLite** como banco de dados relacional leve e sem dor de cabeça
+
+## 🌟 Versão 2.0 (Novas Features)
+O projeto evoluiu do conceito tradicional de bancos para uma gestão focada em objetivos:
+- **Caixinhas (Envelopes):** As contas se tornaram "Caixinhas" com "Tags" livres (ex: Reserva, Viagem, Férias).
+- **Transferências:** Novo sistema para transferir dinheiro entre Caixinhas, usando um cálculo robusto de "Mapa de Deltas" no Prisma para manter a consistência contábil ao editar ou excluir transferências.
+
+## 🌟 Funcionalidades do MVP (Versão 1.0)
 
 ---
 

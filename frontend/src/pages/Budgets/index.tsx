@@ -155,81 +155,136 @@ export function Budgets(){
                         Nenhum orçamento definido para este período.
                     </div>
                 ) : (
-                    <table className="w-full text-left">
-                        <thead className="bg-gray-50 border-b border-gray-100">
-                            <tr>
-                                <th className="px-6 py-4 text-sm font-semibold text-gray-600">Categoria</th>
-                                <th className="px-6 py-4 text-sm font-semibold text-gray-600">Mês Ref.</th>
-                                <th className="px-6 py-4 text-sm font-semibold text-gray-600">Progresso</th>
-                                <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-right">Limite (R$)</th>
-                                <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
+                    <>
+                        {/* VISUALIZAÇÃO DESKTOP (Tabela) */}
+                        <table className="hidden md:table w-full text-left">
+                            <thead className="bg-gray-50 border-b border-gray-100">
+                                <tr>
+                                    <th className="px-6 py-4 text-sm font-semibold text-gray-600">Categoria</th>
+                                    <th className="px-6 py-4 text-sm font-semibold text-gray-600">Mês Ref.</th>
+                                    <th className="px-6 py-4 text-sm font-semibold text-gray-600">Progresso</th>
+                                    <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-right">Limite (R$)</th>
+                                    <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {budgets.map(budget => {
+                                    const category = categories.find(c => c.id === budget.categoryId);
+                                    
+                                    // Extraindo Mês/Ano amigável (ex: 09/2026)
+                                    const budgetDate = budget.month ? new Date(budget.month) : null;
+                                    const monthDisplay = budgetDate 
+                                        ? `${String(budgetDate.getUTCMonth() + 1).padStart(2, '0')}/${budgetDate.getUTCFullYear()}`
+                                        : '-';
+
+                                    // Lógica de Progresso
+                                    const spent = budget.spent || 0;
+                                    const percentage = budget.limit > 0 ? Math.min((spent / budget.limit) * 100, 100) : 0;
+                                    const isOverBudget = spent > budget.limit;
+
+                                    return (
+                                        <tr key={budget.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4 text-gray-600">
+                                                {category ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border" style={{ backgroundColor: `${category.color}15`, color: category.color, borderColor: `${category.color}30` }}>
+                                                        {category.name}
+                                                    </span>
+                                                ) : '-'}
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-600 font-medium">
+                                                {monthDisplay}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col gap-1 w-48">
+                                                    <div className="flex justify-between text-xs">
+                                                        <span className={isOverBudget ? 'text-red-600 font-semibold' : 'text-gray-500'}>
+                                                            Gasto: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(spent)}
+                                                        </span>
+                                                        <span className="text-gray-500">{percentage.toFixed(0)}%</span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                                        <div 
+                                                            className={`h-2 rounded-full ${isOverBudget ? 'bg-red-500' : 'bg-emerald-500'}`} 
+                                                            style={{ width: `${percentage}%` }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-bold text-gray-700">
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(budget.limit)}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <button 
+                                                    onClick={() => handleEdit(budget)}
+                                                    className="text-blue-600 hover:text-blue-800 mr-3 font-medium text-sm transition-colors cursor-pointer"
+                                                >
+                                                    Editar
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDelete(budget.id)}
+                                                    className="text-red-600 hover:text-red-800 font-medium text-sm transition-colors cursor-pointer"
+                                                >
+                                                    Excluir
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+
+                        {/* VISUALIZAÇÃO MOBILE (Cards) */}
+                        <div className="md:hidden flex flex-col divide-y divide-gray-100">
                             {budgets.map(budget => {
                                 const category = categories.find(c => c.id === budget.categoryId);
                                 
-                                // Extraindo Mês/Ano amigável (ex: 09/2026)
                                 const budgetDate = budget.month ? new Date(budget.month) : null;
                                 const monthDisplay = budgetDate 
                                     ? `${String(budgetDate.getUTCMonth() + 1).padStart(2, '0')}/${budgetDate.getUTCFullYear()}`
                                     : '-';
 
-                                // Lógica de Progresso
                                 const spent = budget.spent || 0;
                                 const percentage = budget.limit > 0 ? Math.min((spent / budget.limit) * 100, 100) : 0;
                                 const isOverBudget = spent > budget.limit;
 
                                 return (
-                                    <tr key={budget.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 text-gray-600">
-                                            {category ? (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border" style={{ backgroundColor: `${category.color}15`, color: category.color, borderColor: `${category.color}30` }}>
-                                                    {category.name}
-                                                </span>
-                                            ) : '-'}
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-600 font-medium">
-                                            {monthDisplay}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col gap-1 w-48">
-                                                <div className="flex justify-between text-xs">
-                                                    <span className={isOverBudget ? 'text-red-600 font-semibold' : 'text-gray-500'}>
-                                                        Gasto: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(spent)}
+                                    <div key={budget.id} className="p-4 bg-white hover:bg-gray-50 transition-colors flex flex-col gap-3">
+                                        <div className="flex justify-between items-center">
+                                            <div className="flex items-center gap-2">
+                                                {category ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border" style={{ backgroundColor: `${category.color}15`, color: category.color, borderColor: `${category.color}30` }}>
+                                                        {category.name}
                                                     </span>
-                                                    <span className="text-gray-500">{percentage.toFixed(0)}%</span>
-                                                </div>
-                                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                                    <div 
-                                                        className={`h-2 rounded-full ${isOverBudget ? 'bg-red-500' : 'bg-emerald-500'}`} 
-                                                        style={{ width: `${percentage}%` }}
-                                                    ></div>
-                                                </div>
+                                                ) : '-'}
+                                                <span className="text-xs text-gray-500 font-medium">{monthDisplay}</span>
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-right font-bold text-gray-700">
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(budget.limit)}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <button 
-                                                onClick={() => handleEdit(budget)}
-                                                className="text-blue-600 hover:text-blue-800 mr-3 font-medium text-sm transition-colors cursor-pointer"
-                                            >
-                                                Editar
-                                            </button>
-                                            <button 
-                                                onClick={() => handleDelete(budget.id)}
-                                                className="text-red-600 hover:text-red-800 font-medium text-sm transition-colors cursor-pointer"
-                                            >
-                                                Excluir
-                                            </button>
-                                        </td>
-                                    </tr>
+                                            <div className="flex gap-3 text-xs font-medium">
+                                                <button onClick={() => handleEdit(budget)} className="text-blue-600">Editar</button>
+                                                <button onClick={() => handleDelete(budget.id)} className="text-red-600">Excluir</button>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col gap-1 w-full mt-1">
+                                            <div className="flex justify-between text-xs">
+                                                <span className={isOverBudget ? 'text-red-600 font-semibold' : 'text-gray-500'}>
+                                                    Gasto: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(spent)}
+                                                </span>
+                                                <span className="text-gray-700 font-bold">
+                                                    Limite: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(budget.limit)}
+                                                </span>
+                                            </div>
+                                            <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                                                <div 
+                                                    className={`h-2 rounded-full ${isOverBudget ? 'bg-red-500' : 'bg-emerald-500'}`} 
+                                                    style={{ width: `${percentage}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 );
                             })}
-                        </tbody>
-                    </table>
+                        </div>
+                    </>
                 )}
             </div>
 

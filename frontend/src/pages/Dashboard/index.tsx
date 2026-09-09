@@ -3,6 +3,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recha
 import { DashboardService, type IDashboard } from "../../services/dashboard.service";
 import { CategoryService } from "../../services/category.service";
 import type { ICategory } from "../../types";
+import { renderIcon } from "../../utils/icons";
 
 export function Dashboard() {
     const [summary, setSummary] = useState<IDashboard | null>(null);
@@ -129,7 +130,7 @@ export function Dashboard() {
                                             <div className="flex items-center gap-2">
                                                 {cat ? (
                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border" style={{ backgroundColor: `${cat.color}15`, color: cat.color, borderColor: `${cat.color}30` }}>
-                                                        {cat.icon} {cat.name}
+                                                        {renderIcon(cat.icon, 14)} {cat.name}
                                                     </span>
                                                 ) : (
                                                     <span className="text-gray-600 font-medium">Categoria Removida</span>
