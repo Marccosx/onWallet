@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 export function Navbar() {
     // Array para facilitar a adição de novos menus no futuro
     const navItems = [
+        { name: "Visão Geral", path: "/dashboard" },
         { name: "Contas", path: "/accounts" },
         { name: "Categorias", path: "/categories" },
         { name: "Transações", path: "/transactions" },

@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import Swal from "sweetalert2";
 import {CategoryService} from '../../services/category.service';
 import type { ICategory } from "../../types";
 
@@ -33,56 +35,70 @@ export function Categories(){
         }
     };
 
-    const handleDelete = async (id: string) =>{
-        if(window.confirm("Deseja excluir essa categoria?")){
-            try{
-                await CategoryService.delete(id);
-                loadCategories();
-            }catch(error){
-                alert("Erro! pode haver transações vinculas a essa categoria");
-            }
-        }
+  const handleDelete = async (id: string) =>{
+      const result = await Swal.fire({
+          title: 'Excluir Categoria?',
+          text: "Se houver transações vinculadas a ela, ocorrerá um erro.",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#10b981',
+          cancelButtonColor: '#ef4444',
+          confirmButtonText: 'Sim, excluir',
+          cancelButtonText: 'Cancelar'
+      });
+
+      if(result.isConfirmed){
+          try{
+              await CategoryService.delete(id);
+              toast.success("Categoria excluída com sucesso!");
+              loadCategories();
+          }catch(error){
+              toast.error("Erro! Pode haver transações vinculadas a essa categoria.");
+          }
+      }
+  };
+
+  const handleOpenNew = () => {
+  setEditingId(null);
+  setFormData({ name: '', type: 'EXPENSE', color: '#FF5722', icon: '🛒' });
+  setIsModalOpen(true);
+};
+
+const handleEdit = (category: ICategory) => {
+  setEditingId(category.id);
+  setFormData({
+    name: category.name,
+    type: category.type,
+    color: category.color || '#CBD5E1',
+    icon: category.icon || '🏷️'
+  });
+  setIsModalOpen(true);
+};
+
+const handleSaveCategory = async (e: React.FormEvent) => {
+  e.preventDefault();
+  try {
+    const catData = {
+      name: formData.name,
+      type: formData.type as 'INCOME' | 'EXPENSE',
+      color: formData.color,
+      icon: formData.icon,
     };
 
-    const handleOpenNew = () => {
-    setEditingId(null);
-    setFormData({ name: '', type: 'EXPENSE', color: '#FF5722', icon: '🛒' });
-    setIsModalOpen(true);
-  };
-
-  const handleEdit = (category: ICategory) => {
-    setEditingId(category.id);
-    setFormData({
-      name: category.name,
-      type: category.type,
-      color: category.color || '#CBD5E1',
-      icon: category.icon || '🏷️'
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleSaveCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const catData = {
-        name: formData.name,
-        type: formData.type as 'INCOME' | 'EXPENSE',
-        color: formData.color,
-        icon: formData.icon,
-      };
-
-      if (editingId) {
-        await CategoryService.update(editingId, catData);
-      } else {
-        await CategoryService.create(catData);
-      }
-      
-      setIsModalOpen(false);
-      loadCategories();
-    } catch (error) {
-      alert("Erro ao salvar categoria. Verifique os dados.");
+    if (editingId) {
+      await CategoryService.update(editingId, catData);
+      toast.success("Categoria atualizada com sucesso!");
+    } else {
+      await CategoryService.create(catData);
+      toast.success("Categoria criada com sucesso!");
     }
-  };
+    
+    setIsModalOpen(false);
+    loadCategories();
+  } catch (error) {
+    toast.error("Erro ao salvar categoria. Verifique os dados.");
+  }
+};
 
   if (isLoading) return <div className="p-8 text-center text-gray-500">Carregando categorias...</div>;
 
@@ -181,13 +197,26 @@ export function Categories(){
 
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Ícone (Emoji)</label>
-                  <input 
-                    type="text" required maxLength={2}
-                    value={formData.icon}
-                    onChange={e => setFormData({...formData, icon: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg p-2.5 outline-none text-center text-xl"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Ícone</label>
+                  <div className="relative">
+                    {/* Botão que mostra o emoji selecionado */}
+                    <div className="w-full border border-gray-300 rounded-lg p-2 flex items-center justify-center text-2xl bg-gray-50 h-11">
+                        {formData.icon}
+                    </div>
+                    {/* Grid de opções de emojis comuns para finanças */}
+                    <div className="mt-2 p-2 border border-gray-200 rounded-lg bg-white shadow-sm grid grid-cols-6 gap-1 h-32 overflow-y-auto">
+                        {['🛒', '🍔', '🏠', '⚡', '💧', '🚗', '🏥', '🎮', '👕', '✈️', '📱', '📚', '💼', '💰', '💳', '🛍️', '🎓', '🐶', '🔧', '🚌', '🍽️', '🏋️', '🎬', '🎁'].map(emoji => (
+                            <button
+                                key={emoji}
+                                type="button"
+                                onClick={() => setFormData({...formData, icon: emoji})}
+                                className={`text-xl p-1 rounded hover:bg-emerald-50 transition-colors cursor-pointer ${formData.icon === emoji ? 'bg-emerald-100 ring-1 ring-emerald-400' : ''}`}
+                            >
+                                {emoji}
+                            </button>
+                        ))}
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Cor</label>

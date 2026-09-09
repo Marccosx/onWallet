@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { toast } from "react-toastify";
+import Swal from "sweetalert2";
 import { AccountService } from '../../services/account.service';
 import type { IAccount } from '../../types';
 
@@ -49,12 +51,24 @@ export function Accounts() {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Tem certeza que deseja excluir esta conta?")) {
+    const result = await Swal.fire({
+        title: 'Excluir Conta?',
+        text: "Tem certeza que deseja excluir esta conta? Isso pode falhar se houver transações vinculadas.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#ef4444',
+        confirmButtonText: 'Sim, excluir',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
       try {
         await AccountService.delete(id);
+        toast.success("Conta excluída com sucesso!");
         loadAccounts();
       } catch (error) {
-        alert("Erro ao excluir conta. Verifique se existem transações vinculadas a ela.");
+        toast.error("Erro ao excluir conta. Verifique se existem transações vinculadas a ela.");
       }
     }
   };
@@ -71,14 +85,16 @@ export function Accounts() {
 
       if (editingId) {
         await AccountService.update(editingId, accountData);
+        toast.success("Conta atualizada com sucesso!");
       } else {
         await AccountService.create(accountData);
+        toast.success("Conta criada com sucesso!");
       }
       
       setIsModalOpen(false);
       loadAccounts();
     } catch (error) {
-      alert("Erro ao salvar conta. Verifique os dados.");
+      toast.error("Erro ao salvar conta. Verifique os dados.");
     }
   };
 

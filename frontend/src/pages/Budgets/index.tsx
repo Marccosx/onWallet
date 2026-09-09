@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import Swal from "sweetalert2";
 import {BudgetService} from "../../services/budget.service";
 import type { IBudget, ICategory } from "../../types";
 import CategoryService from "../../services/category.service";
@@ -49,13 +51,26 @@ export function Budgets(){
     }
 
     const handleDelete = async (id: string) => {
-        if (window.confirm("Deseja excluir esse Orçamento?")) {
+        const result = await Swal.fire({
+            title: 'Excluir Orçamento?',
+            text: "Você tem certeza que deseja remover este limite de gastos?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#ef4444',
+            confirmButtonText: 'Sim, excluir',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
             try {
                 setIsLoading(true);
                 await BudgetService.delete(id);
+                toast.success("Orçamento excluído com sucesso!");
                 loadData();
             } catch (error) {
-                console.error("Erro ao excluir o Orçamento", error)
+                console.error("Erro ao excluir o Orçamento", error);
+                toast.error("Erro ao excluir o Orçamento.");
             } finally {
                 setIsLoading(false);
             }
@@ -88,15 +103,17 @@ export function Budgets(){
             };
 
             if (editingId) {
-                await BudgetService.update(editingId, transData)
+                await BudgetService.update(editingId, transData);
+                toast.success("Orçamento atualizado!");
             } else {
                 await BudgetService.create(transData);
+                toast.success("Orçamento criado!");
             }
             setIsModalOpen(false);
             loadData();
         } catch (error) {
-            console.error("Erro ao Salvar dados", error)
-            alert("Error ao salvar transação. Verifique os dados");
+            console.error("Erro ao Salvar dados", error);
+            toast.error("Erro ao salvar orçamento. Verifique se já não existe um para esta categoria no mês.");
         }
     };
 

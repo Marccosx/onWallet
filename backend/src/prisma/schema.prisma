@@ -16,6 +16,7 @@ model Account {
   type TypeAccount
   balance Float @default(0)
   color String?
+  created_at DateTime @default(now())
   transactions Transaction[]
 
   @@map("account")

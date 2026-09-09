@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import Swal from "sweetalert2";
 import { TransactionService } from '../../services/transaction.service';
 import type { IAccount, ICategory, ITransaction } from "../../types";
 import { CategoryService } from "../../services/category.service";
@@ -56,13 +58,26 @@ export function Transactions() {
     }
 
     const handleDelete = async (id: string) => {
-        if (window.confirm("Deseja excluir essa categoria?")) {
+        const result = await Swal.fire({
+            title: 'Você tem certeza?',
+            text: "Deseja realmente excluir esta transação?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981', // emerald-500
+            cancelButtonColor: '#ef4444',  // red-500
+            confirmButtonText: 'Sim, excluir!',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
             try {
                 setIsLoading(true);
                 await TransactionService.delete(id);
+                toast.success("Transação excluída com sucesso!");
                 loadData();
             } catch (error) {
-                console.error("Erro ao excluir a Transação", error)
+                console.error("Erro ao excluir a Transação", error);
+                toast.error("Erro ao excluir a transação.");
             } finally {
                 setIsLoading(false);
             }
@@ -101,15 +116,17 @@ export function Transactions() {
             };
 
             if (editingId) {
-                await TransactionService.update(editingId, transData)
+                await TransactionService.update(editingId, transData);
+                toast.success("Transação atualizada com sucesso!");
             } else {
                 await TransactionService.create(transData);
+                toast.success("Transação criada com sucesso!");
             }
             setIsModalOpen(false);
             loadData();
         } catch (error) {
-            console.error("Erro ao Salvar dados", error)
-            alert("Error ao salvar transação. Verifique os dados");
+            console.error("Erro ao Salvar dados", error);
+            toast.error("Erro ao salvar transação. Verifique os dados.");
         }
     };
 
