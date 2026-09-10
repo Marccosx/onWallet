@@ -49,6 +49,8 @@ export class TransactionService implements ITransactionService {
       }
     }
     const type = data.type;
+    const installments = data.installments || 1;
+
     if(type === 'TRANSFER'){
       try{
         const [transaction] = await prisma.$transaction([
@@ -69,6 +71,40 @@ export class TransactionService implements ITransactionService {
         return transaction;  
       }catch(error){
          throw new Error((error as Error).message);
+      }
+    }
+    if(installments > 1 ){
+      const installmentAmount = data.amount / installments;
+      const prismaOperations = [];
+
+      for(let i = 1; i <= installments; i++){
+        const targetDate = new Date(data.create_at);
+        targetDate.setMonth(targetDate.getMonth() + (i - 1))
+        prismaOperations.push(
+          prisma.transaction.create({
+            data: {
+              ...data,
+              amount: installmentAmount,
+              description: `${data.description} (${i}/${installments})`,
+              create_at: targetDate.toISOString(),
+              installments: undefined
+            }
+          })
+        );
+        
+      }
+      prismaOperations.push(
+        prisma.account.update({
+          where: {id: data.accountId},
+          data: { balance: {decrement: data.amount}}
+        })
+      );
+
+      try{
+        const result = await prisma.$transaction(prismaOperations);
+        return result[0] as Transaction;
+      }catch(error){
+        throw new Error((error as Error).message);
       }
     }
     try {

@@ -12,12 +12,14 @@ export function Categories(){
     const [filterType, setFilterType] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
 
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [showIconPicker, setShowIconPicker] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         name: '',
         type: 'EXPENSE',
         color: '#FF5722',
-        icon: '🏷️'
+        icon: '🏷️',
+        budgetLimit: 0
     });
 
     useEffect(()=>{
@@ -61,7 +63,8 @@ export function Categories(){
 
   const handleOpenNew = () => {
   setEditingId(null);
-  setFormData({ name: '', type: 'EXPENSE', color: '#FF5722', icon: '🛒' });
+  setFormData({ name: '', type: 'EXPENSE', color: '#FF5722', icon: '🛒', budgetLimit: 0 });
+  setShowIconPicker(false);
   setIsModalOpen(true);
 };
 
@@ -71,8 +74,10 @@ const handleEdit = (category: ICategory) => {
     name: category.name,
     type: category.type,
     color: category.color || '#CBD5E1',
-    icon: category.icon || '🏷️'
+    icon: category.icon || '🏷️',
+    budgetLimit: category.budgetLimit || 0
   });
+  setShowIconPicker(false);
   setIsModalOpen(true);
 };
 
@@ -84,6 +89,7 @@ const handleSaveCategory = async (e: React.FormEvent) => {
       type: formData.type as 'INCOME' | 'EXPENSE',
       color: formData.color,
       icon: formData.icon,
+      budgetLimit: Number(formData.budgetLimit)
     };
 
     if (editingId) {
@@ -152,9 +158,16 @@ const handleSaveCategory = async (e: React.FormEvent) => {
             
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-gray-800 truncate">{category.name}</h3>
-              <p className="text-xs font-semibold tracking-wider text-gray-400 uppercase">
-                {category.type === 'INCOME' ? 'Receita' : 'Despesa'}
-              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[10px] font-bold tracking-wider text-gray-400 uppercase">
+                    {category.type === 'INCOME' ? 'Receita' : 'Despesa'}
+                  </span>
+                  {(category.budgetLimit || 0) > 0 && (
+                      <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded uppercase">
+                          Limite: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(category.budgetLimit || 0)}
+                      </span>
+                  )}
+              </div>
             </div>
 
             {/* Ações (Hover) */}
@@ -201,22 +214,29 @@ const handleSaveCategory = async (e: React.FormEvent) => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Ícone</label>
                   <div className="relative">
                     {/* Botão que mostra o emoji selecionado */}
-                    <div className="w-full border border-gray-300 rounded-lg p-2 flex items-center justify-center bg-gray-50 h-11" style={{ color: formData.color }}>
+                    <button 
+                        type="button"
+                        onClick={() => setShowIconPicker(!showIconPicker)}
+                        className="w-full border border-gray-300 rounded-lg p-2 flex items-center justify-center bg-gray-50 h-11 hover:bg-gray-100 cursor-pointer transition-colors" 
+                        style={{ color: formData.color }}
+                    >
                         {renderIcon(formData.icon, 24)}
-                    </div>
+                    </button>
                     {/* Grid de opções de ícones */}
-                    <div className="mt-2 p-2 border border-gray-200 rounded-lg bg-white shadow-sm grid grid-cols-6 gap-1 h-40 overflow-y-auto">
-                        {AVAILABLE_ICONS.map(iconName => (
-                            <button
-                                key={iconName}
-                                type="button"
-                                onClick={() => setFormData({...formData, icon: iconName})}
-                                className={`p-2 flex justify-center items-center rounded hover:bg-emerald-50 transition-colors cursor-pointer text-gray-600 hover:text-emerald-600 ${formData.icon === iconName ? 'bg-emerald-100 ring-1 ring-emerald-400 text-emerald-600' : ''}`}
-                            >
-                                {renderIcon(iconName, 20)}
-                            </button>
-                        ))}
-                    </div>
+                    {showIconPicker && (
+                        <div className="absolute top-12 left-0 w-64 p-2 border border-gray-200 rounded-lg bg-white shadow-xl grid grid-cols-6 gap-1 h-48 overflow-y-auto z-50">
+                            {AVAILABLE_ICONS.map(iconName => (
+                                <button
+                                    key={iconName}
+                                    type="button"
+                                    onClick={() => { setFormData({...formData, icon: iconName}); setShowIconPicker(false); }}
+                                    className={`p-2 flex justify-center items-center rounded hover:bg-emerald-50 transition-colors cursor-pointer text-gray-600 hover:text-emerald-600 ${formData.icon === iconName ? 'bg-emerald-100 ring-1 ring-emerald-400 text-emerald-600' : ''}`}
+                                >
+                                    {renderIcon(iconName, 20)}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                   </div>
                 </div>
                 <div>
@@ -229,6 +249,22 @@ const handleSaveCategory = async (e: React.FormEvent) => {
                   />
                 </div>
               </div>
+
+              {formData.type === 'EXPENSE' && (
+                  <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Orçamento Mensal (Opcional)</label>
+                      <input 
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={formData.budgetLimit === 0 ? '' : formData.budgetLimit}
+                          onChange={e => setFormData({...formData, budgetLimit: Number(e.target.value)})}
+                          className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-emerald-500"
+                          placeholder="Ex: 500.00"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Defina um limite para te avisarmos se você extrapolar.</p>
+                  </div>
+              )}
 
               <div className="flex justify-end gap-3 mt-6">
                 <button 

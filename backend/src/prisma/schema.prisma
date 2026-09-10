@@ -30,6 +30,7 @@ model Category{
   color String?
   icon String?
   type TypeCategory
+  budgetLimit Float?
   transactions Transaction[]
   budget Budget[]
 

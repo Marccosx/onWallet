@@ -27,7 +27,8 @@ export function Transactions() {
         accountId: '',
         destinationAccountId: '',
         categoryId: '',
-        date: ''
+        date: '',
+        installments: 1
     })
 
     useEffect(() => {
@@ -88,7 +89,7 @@ export function Transactions() {
 
     const handleOpenNew = () => {
         setEditingId(null);
-        setFormData({ description: '', type: 'EXPENSE', amount: 0, accountId: '', destinationAccountId: '', categoryId: '', date: '' });
+        setFormData({ description: '', type: 'EXPENSE', amount: 0, accountId: '', destinationAccountId: '', categoryId: '', date: '', installments: 1 });
         setIsModalOpen(true);
     };
 
@@ -101,7 +102,8 @@ export function Transactions() {
             accountId: transaction.accountId,
             destinationAccountId: transaction.destinationAccountId || '',
             categoryId: transaction.categoryId,
-            date: transaction.create_at.split('T')[0]
+            date: transaction.create_at.split('T')[0],
+            installments: 1
         })
         setIsModalOpen(true);
     }
@@ -116,7 +118,8 @@ export function Transactions() {
                 accountId: formData.accountId,
                 destinationAccountId: formData.type === 'TRANSFER' ? formData.destinationAccountId : undefined,
                 categoryId: formData.type === 'TRANSFER' ? categories[0]?.id : formData.categoryId,
-                create_at: new Date(formData.date + 'T00:00:00').toISOString()
+                create_at: new Date(formData.date + 'T00:00:00').toISOString(),
+                installments: formData.installments > 1 && !editingId ? formData.installments : undefined
             };
 
             if (editingId) {
@@ -463,21 +466,38 @@ export function Transactions() {
                                 )}
 
                                 {formData.type !== 'TRANSFER' && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
-                                        <select 
-                                            required
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
-                                            value={formData.categoryId}
-                                            onChange={(e) => setFormData({...formData, categoryId: e.target.value})}
-                                        >
-                                            <option value="" disabled>Selecione...</option>
-                                            {categories
-                                                .filter(cat => formData.type === '' || cat.type === formData.type)
-                                                .map(cat => (
-                                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                            ))}
-                                        </select>
+                                    <div className={`grid ${!editingId && formData.type === 'EXPENSE' ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                                            <select 
+                                                required
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
+                                                value={formData.categoryId}
+                                                onChange={(e) => setFormData({...formData, categoryId: e.target.value})}
+                                            >
+                                                <option value="" disabled>Selecione...</option>
+                                                {categories
+                                                    .filter(cat => formData.type === '' || cat.type === formData.type)
+                                                    .map(cat => (
+                                                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        {!editingId && formData.type === 'EXPENSE' && (
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Parcelas</label>
+                                                <select 
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
+                                                    value={formData.installments}
+                                                    onChange={(e) => setFormData({...formData, installments: Number(e.target.value)})}
+                                                >
+                                                    <option value={1}>À vista</option>
+                                                    {[...Array(23)].map((_, i) => (
+                                                        <option key={i+2} value={i+2}>{i+2}x</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

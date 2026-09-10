@@ -6,12 +6,13 @@ interface IAccount {
     color: string;
 }
 
-interface ICategory {
+interface ICategory{
     id: string;
     name: string;
+    type: 'INCOME' | 'EXPENSE';
     color: string;
-    icon: string;
-    type: string;
+    icon?: string;
+    budgetLimit?: number;
 }
 
 interface ITransaction {

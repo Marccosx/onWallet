@@ -18,7 +18,17 @@ export class BudgetService implements IBudgetService{
                     }
                 }
             });
-            const BudgetWithSpent = await Promise.all(budgets.map(async (budget) => {
+
+            const categoriesWithBudget = await prisma.category.findMany({where: {budgetLimit:{gt:0}}})
+            const allBudgets: any[] = [...budgets];
+            for(const cat of categoriesWithBudget){
+                const alreadyHasBudget = budgets.find(b => b.categoryId === cat.id);
+                if (!alreadyHasBudget){
+                    allBudgets.push({id:`virtual-${cat.id}`, categoryId: cat.id,month: startDate, limit:cat.budgetLimit});
+                }
+            }
+
+            const BudgetWithSpent = await Promise.all(allBudgets.map(async (budget) => {
                 const result = await prisma.transaction.aggregate({
                     _sum: { amount: true },
                     where: {
@@ -32,11 +42,10 @@ export class BudgetService implements IBudgetService{
                 });
                 
                 const spent = result._sum.amount || 0;
-
                 return {...budget, spent};
             }));
 
-        return BudgetWithSpent;
+        return BudgetWithSpent as any;
         }catch(error){
             throw new Error((error as Error).message);
         }
