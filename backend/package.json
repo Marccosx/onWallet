@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc",
     "db:push": "prisma db push",
-    "start": "npm run db:push && node ../dist/src/server.js",
+    "start": "npm run db:push && node dist/src/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
