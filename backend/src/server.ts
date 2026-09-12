@@ -10,21 +10,21 @@ import swaggerJSDoc from "swagger-jsdoc";
 
 const app = express();
 app.use(express.json())
-app.use(cors());
-const port = 3333;
+app.use(cors({ origin: process.env.FRONTEND_URL || true }));
+const port = Number(process.env.PORT) || 3333;
 
-const swaggerOptions= {
-  swaggerDefinition:{
+const swaggerOptions = {
+  swaggerDefinition: {
     openapi: "3.0.0",
-    info:{
+    info: {
       title: "OnWallet API",
       version: "1.0.0",
       description: "API for OnWallet application"
     },
     servers: [
       {
-        url: `http://localhost:${port}`,
-        description: "Development server"
+        url: process.env.API_URL || `http://localhost:${port}`,
+        description: process.env.API_URL ? "Production server" : "Development server"
       }
     ]
   },
@@ -34,7 +34,7 @@ const swaggerOptions= {
 const swaggerDocs = swaggerJSDoc(swaggerOptions);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
-app.get("/health", (req, res)=>{
+app.get("/health", (req, res) => {
   res.send("OK")
 })
 
@@ -44,7 +44,7 @@ app.use('/transactions', transactionRouter)
 app.use('/budgets', budgetRouter)
 app.use('/dashboards', dashboardRouter)
 
-app.listen(port, ()=>{
+app.listen(port, () => {
   console.log(`Server is running on port http://localhost:${port}`);
   console.log(`Swagger docs available at http://localhost:${port}/api-docs`);
 })

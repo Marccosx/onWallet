@@ -49,6 +49,31 @@ O projeto evoluiu do conceito tradicional de bancos para uma gestão focada em o
    - Backend: `npm run dev`
 5. Acesse `http://localhost:5173` ou a porta configurada no seu navegador.
 
+## Deploy: Vercel + Railway
+
+O frontend deve ser publicado na Vercel e o backend junto com um PostgreSQL no Railway.
+
+### Railway
+
+1. Crie um projeto no Railway e adicione um serviço **PostgreSQL**.
+2. Adicione outro serviço a partir deste repositório, configurando **Root Directory** como `backend`.
+3. Configure as variáveis no serviço da API:
+   - `DATABASE_URL`: use a referência `${{Postgres.DATABASE_URL}}` (ou a URL interna do serviço PostgreSQL).
+   - `FRONTEND_URL`: URL final da aplicação na Vercel, por exemplo `https://onwallet.vercel.app`.
+   - `API_URL`: URL pública da API no Railway.
+4. Use `npm run build` como Build Command e `npm start` como Start Command.
+
+O comando de start executa `prisma db push` antes de iniciar a API. Isso cria/atualiza as tabelas do PostgreSQL no primeiro deploy. As migrations existentes foram criadas para SQLite e não devem ser executadas nesse banco PostgreSQL.
+
+### Vercel
+
+1. Importe o mesmo repositório na Vercel.
+2. Configure **Root Directory** como `frontend`.
+3. Adicione a variável `VITE_API_URL` com a URL pública do serviço do Railway, sem barra no final.
+4. Use `npm run build` como Build Command e `dist` como Output Directory.
+
+Depois do deploy, teste `https://URL-DA-API/health` antes de abrir o frontend.
+
 ---
 
 ## ✅ O que foi entregue no MVP (Versão 1.0)

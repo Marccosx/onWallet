@@ -1,0 +1,1 @@
+{"version":3,"file":"IDashboardService.d.ts","sourceRoot":"","sources":["../../../backend/src/interfaces/IDashboardService.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAC,YAAY,EAAC,MAAM,yBAAyB,CAAA;AAEzD,MAAM,WAAW,iBAAiB;IAE9B,SAAS,CAAC,IAAI,EAAE,GAAG,GAAG,OAAO,CAAC,YAAY,CAAC,CAAA;CAC9C"}

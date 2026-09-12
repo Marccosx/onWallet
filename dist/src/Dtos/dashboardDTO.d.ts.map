@@ -1,0 +1,1 @@
+{"version":3,"file":"dashboardDTO.d.ts","sourceRoot":"","sources":["../../../backend/src/Dtos/dashboardDTO.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,YAAY;IACzB,aAAa,EAAE,MAAM,CAAC;IACtB,WAAW,EAAE,MAAM,CAAC;IACpB,YAAY,EAAE,MAAM,CAAC;IACrB,kBAAkB,EAAE,GAAG,EAAE,CAAA;CAC5B"}

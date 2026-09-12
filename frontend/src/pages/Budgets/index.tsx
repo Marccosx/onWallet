@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
-import {BudgetService} from "../../services/budget.service";
+import { BudgetService } from "../../services/budget.service";
 import type { IBudget, ICategory } from "../../types";
 import CategoryService from "../../services/category.service";
 
-export function Budgets(){
+export function Budgets() {
     const [budgets, setBudgets] = useState<IBudget[]>([]);
     const [categories, setCategories] = useState<ICategory[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -13,9 +13,6 @@ export function Budgets(){
     const [filterDate, setFilterDate] = useState<string>(
         new Date().toISOString().substring(0, 7)
     );
-    const [filterType, setFilterType] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
-
-
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState('');
     const [formData, setFormData] = useState({
@@ -24,28 +21,28 @@ export function Budgets(){
         limit: 0,
     });
 
-    useEffect(()=>{
+    useEffect(() => {
         loadData();
     }, [filterDate])
 
-    const loadData = async ()=>{
-        try{
+    const loadData = async () => {
+        try {
             setIsLoading(true);
-            const dataCategories = await CategoryService.getAll(filterType === 'ALL' ? undefined : filterType);
+            const dataCategories = await CategoryService.getAll();
             setCategories(dataCategories);
-        }catch(error){
+        } catch (error) {
             console.error("Erro ao buscar as categorias", error)
-        }finally{
+        } finally {
             setIsLoading(false);
         }
 
-        try{
+        try {
             setIsLoading(true);
             const dataBudgets = await BudgetService.getAll(filterDate);
             setBudgets(dataBudgets);
-        }catch(error){
+        } catch (error) {
             console.error("Erro ao buscar os orçamentos", error);
-        }finally{
+        } finally {
             setIsLoading(false);
         }
     }
@@ -99,7 +96,7 @@ export function Budgets(){
             const transData = {
                 categoryId: formData.categoryId,
                 limit: formData.limit,
-                month: new Date(formData.month + 'T00:00:00').toISOString() 
+                month: new Date(formData.month + 'T00:00:00').toISOString()
             };
 
             if (editingId) {
@@ -118,7 +115,7 @@ export function Budgets(){
     };
 
     if (isLoading) return <div className="p-8 text-center text-gray-500">Carregando dados...</div>
-    return(
+    return (
         <div className="p-6 max-w-5xl mx-auto">
             {/* Cabeçalho */}
             <div className="flex justify-between items-center mb-6 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -126,8 +123,8 @@ export function Budgets(){
                     <h1 className="text-2xl font-bold text-gray-800">Orçamentos</h1>
                     <p className="text-gray-500 text-sm">Defina limites de gastos para cada categoria</p>
                 </div>
-                <button 
-                    onClick={handleOpenNew} 
+                <button
+                    onClick={handleOpenNew}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors cursor-pointer"
                 >
                     + Novo Orçamento
@@ -138,10 +135,10 @@ export function Budgets(){
             <div className="flex gap-4 mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100 items-end">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="filterDate">Filtrar por Mês</label>
-                    <input 
+                    <input
                         id="filterDate"
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 outline-none" 
-                        type="month" 
+                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                        type="month"
                         value={filterDate}
                         onChange={(e) => setFilterDate(e.target.value)}
                     />
@@ -170,10 +167,10 @@ export function Budgets(){
                             <tbody className="divide-y divide-gray-100">
                                 {budgets.map(budget => {
                                     const category = categories.find(c => c.id === budget.categoryId);
-                                    
+
                                     // Extraindo Mês/Ano amigável (ex: 09/2026)
                                     const budgetDate = budget.month ? new Date(budget.month) : null;
-                                    const monthDisplay = budgetDate 
+                                    const monthDisplay = budgetDate
                                         ? `${String(budgetDate.getUTCMonth() + 1).padStart(2, '0')}/${budgetDate.getUTCFullYear()}`
                                         : '-';
 
@@ -203,8 +200,8 @@ export function Budgets(){
                                                         <span className="text-gray-500">{percentage.toFixed(0)}%</span>
                                                     </div>
                                                     <div className="w-full bg-gray-200 rounded-full h-2">
-                                                        <div 
-                                                            className={`h-2 rounded-full ${isOverBudget ? 'bg-red-500' : 'bg-emerald-500'}`} 
+                                                        <div
+                                                            className={`h-2 rounded-full ${isOverBudget ? 'bg-red-500' : 'bg-emerald-500'}`}
                                                             style={{ width: `${percentage}%` }}
                                                         ></div>
                                                     </div>
@@ -214,13 +211,13 @@ export function Budgets(){
                                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(budget.limit)}
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                <button 
+                                                <button
                                                     onClick={() => handleEdit(budget)}
                                                     className="text-blue-600 hover:text-blue-800 mr-3 font-medium text-sm transition-colors cursor-pointer"
                                                 >
                                                     Editar
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => handleDelete(budget.id)}
                                                     className="text-red-600 hover:text-red-800 font-medium text-sm transition-colors cursor-pointer"
                                                 >
@@ -237,9 +234,9 @@ export function Budgets(){
                         <div className="md:hidden flex flex-col divide-y divide-gray-100">
                             {budgets.map(budget => {
                                 const category = categories.find(c => c.id === budget.categoryId);
-                                
+
                                 const budgetDate = budget.month ? new Date(budget.month) : null;
-                                const monthDisplay = budgetDate 
+                                const monthDisplay = budgetDate
                                     ? `${String(budgetDate.getUTCMonth() + 1).padStart(2, '0')}/${budgetDate.getUTCFullYear()}`
                                     : '-';
 
@@ -274,8 +271,8 @@ export function Budgets(){
                                                 </span>
                                             </div>
                                             <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                                                <div 
-                                                    className={`h-2 rounded-full ${isOverBudget ? 'bg-red-500' : 'bg-emerald-500'}`} 
+                                                <div
+                                                    className={`h-2 rounded-full ${isOverBudget ? 'bg-red-500' : 'bg-emerald-500'}`}
                                                     style={{ width: `${percentage}%` }}
                                                 ></div>
                                             </div>
@@ -296,7 +293,7 @@ export function Budgets(){
                             <h2 className="text-xl font-bold text-gray-800">
                                 {editingId ? 'Editar Orçamento' : 'Novo Orçamento'}
                             </h2>
-                            <button 
+                            <button
                                 onClick={() => setIsModalOpen(false)}
                                 className="text-gray-400 hover:text-gray-600 text-2xl leading-none cursor-pointer"
                             >
@@ -307,56 +304,56 @@ export function Budgets(){
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Mês de Referência</label>
-                                    <input 
+                                    <input
                                         required
-                                        type="month" 
+                                        type="month"
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                                         value={formData.month ? formData.month.substring(0, 7) : ''} // Pega apenas YYYY-MM
-                                        onChange={(e) => setFormData({...formData, month: e.target.value})}
+                                        onChange={(e) => setFormData({ ...formData, month: e.target.value })}
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Categoria (Somente Despesas)</label>
-                                    <select 
+                                    <select
                                         required
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
                                         value={formData.categoryId}
-                                        onChange={(e) => setFormData({...formData, categoryId: e.target.value})}
+                                        onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
                                     >
                                         <option value="" disabled>Selecione uma categoria...</option>
                                         {categories
                                             .filter(cat => cat.type === 'EXPENSE') // Orçamentos costumam fazer sentido apenas para gastos
                                             .map(cat => (
                                                 <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                        ))}
+                                            ))}
                                     </select>
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Limite (R$)</label>
-                                    <input 
+                                    <input
                                         required
-                                        type="number" 
+                                        type="number"
                                         step="0.01"
                                         min="0"
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                                         value={formData.limit || ''}
-                                        onChange={(e) => setFormData({...formData, limit: Number(e.target.value)})}
+                                        onChange={(e) => setFormData({ ...formData, limit: Number(e.target.value) })}
                                         placeholder="Ex: 500,00"
                                     />
                                 </div>
                             </div>
 
                             <div className="mt-6 flex justify-end gap-3">
-                                <button 
+                                <button
                                     type="button"
                                     onClick={() => setIsModalOpen(false)}
                                     className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors cursor-pointer"
                                 >
                                     Cancelar
                                 </button>
-                                <button 
+                                <button
                                     type="submit"
                                     className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors cursor-pointer"
                                 >

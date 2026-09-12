@@ -9,7 +9,7 @@ export function Dashboard() {
     const [summary, setSummary] = useState<IDashboard | null>(null);
     const [categories, setCategories] = useState<ICategory[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    
+
     // Inicia com o mês atual para evitar erros no backend
     const [filterDate, setFilterDate] = useState<string>(
         new Date().toISOString().substring(0, 7)
@@ -25,7 +25,7 @@ export function Dashboard() {
             // Busca as categorias para podermos exibir os nomes e cores delas
             const cats = await CategoryService.getAll();
             setCategories(cats);
-            
+
             // Busca o resumo do mês selecionado
             const data = await DashboardService.getSummary(filterDate);
             setSummary(data);
@@ -48,8 +48,8 @@ export function Dashboard() {
                     <p className="text-gray-500 text-sm">Acompanhe a saúde das suas finanças</p>
                 </div>
                 <div>
-                    <input 
-                        type="month" 
+                    <input
+                        type="month"
                         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                         value={filterDate}
                         onChange={(e) => setFilterDate(e.target.value)}
@@ -82,7 +82,7 @@ export function Dashboard() {
             {/* Despesas por Categoria com Gráfico */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                 <h2 className="text-lg font-bold text-gray-800 mb-6">Onde seu dinheiro está indo?</h2>
-                
+
                 {summary.ExpensePerCategory.length === 0 ? (
                     <p className="text-gray-500 text-sm text-center py-8">Você ainda não registrou gastos neste mês. 🎉</p>
                 ) : (
@@ -109,8 +109,8 @@ export function Dashboard() {
                                             return <Cell key={`cell-${index}`} fill={cat?.color || '#ccc'} />;
                                         })}
                                     </Pie>
-                                    <Tooltip 
-                                        formatter={(value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)}
+                                    <Tooltip
+                                        formatter={(value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value ?? 0))}
                                     />
                                     <Legend />
                                 </PieChart>
@@ -123,7 +123,7 @@ export function Dashboard() {
                                 const cat = categories.find(c => c.id === expense.categoryId);
                                 const amount = expense._sum.amount || 0;
                                 const percentage = summary.monthExpense > 0 ? (amount / summary.monthExpense) * 100 : 0;
-                                
+
                                 return (
                                     <div key={expense.categoryId} className="flex flex-col gap-1.5">
                                         <div className="flex justify-between items-center text-sm">
@@ -144,8 +144,8 @@ export function Dashboard() {
                                             </div>
                                         </div>
                                         <div className="w-full bg-gray-100 rounded-full h-2">
-                                            <div 
-                                                className="h-2 rounded-full" 
+                                            <div
+                                                className="h-2 rounded-full"
                                                 style={{ width: `${percentage}%`, backgroundColor: cat?.color || '#ccc' }}
                                             ></div>
                                         </div>
