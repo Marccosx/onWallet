@@ -4,6 +4,7 @@ import Swal from "sweetalert2";
 import {CategoryService} from '../../services/category.service';
 import type { ICategory } from "../../types";
 import { renderIcon, AVAILABLE_ICONS } from "../../utils/icons";
+import { PageHeader } from "../../components/PageHeader";
 
 export function Categories(){
     const [categories, setCategories] = useState<ICategory[]>([]);
@@ -113,19 +114,12 @@ const handleSaveCategory = async (e: React.FormEvent) => {
     <div className="p-6 max-w-5xl mx-auto">
       
       {/* Cabeçalho */}
-      <div className="flex justify-between items-center mb-6 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Categorias</h1>
-          <p className="text-gray-500 text-sm">Organize suas receitas e despesas</p>
-        </div>
-        
-        <button 
-          onClick={handleOpenNew}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors cursor-pointer"
-        >
-          + Nova Categoria
-        </button>
-      </div>
+      <PageHeader 
+        title="Categorias" 
+        subtitle="Organize suas receitas e despesas" 
+        buttonText="+ Nova Categoria" 
+        onButtonClick={handleOpenNew} 
+      />
 
       {/* Filtros */}
       <div className="flex gap-2 mb-6">
@@ -158,12 +152,12 @@ const handleSaveCategory = async (e: React.FormEvent) => {
             
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-gray-800 truncate">{category.name}</h3>
-              <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[10px] font-bold tracking-wider text-gray-400 uppercase">
+              <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                  <span className="text-[10px] font-bold tracking-wider text-gray-400 uppercase whitespace-nowrap">
                     {category.type === 'INCOME' ? 'Receita' : 'Despesa'}
                   </span>
                   {(category.budgetLimit || 0) > 0 && (
-                      <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded uppercase">
+                      <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded uppercase whitespace-nowrap truncate max-w-full">
                           Limite: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(category.budgetLimit || 0)}
                       </span>
                   )}

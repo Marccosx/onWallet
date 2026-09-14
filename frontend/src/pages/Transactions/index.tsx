@@ -5,6 +5,7 @@ import { TransactionService } from '../../services/transaction.service';
 import type { IAccount, ICategory, ITransaction } from "../../types";
 import { CategoryService } from "../../services/category.service";
 import { AccountService } from "../../services/account.service";
+import { PageHeader } from "../../components/PageHeader";
 
 export function Transactions() {
     const today = new Date().toISOString().split('T')[0];
@@ -122,13 +123,19 @@ export function Transactions() {
                 installments: formData.installments > 1 && !editingId ? formData.installments : undefined
             };
 
+            let response;
             if (editingId) {
-                await TransactionService.update(editingId, transData);
+                response = await TransactionService.update(editingId, transData);
                 toast.success("Transação atualizada com sucesso!");
             } else {
-                await TransactionService.create(transData);
+                response = await TransactionService.create(transData);
                 toast.success("Transação criada com sucesso!");
             }
+
+            if (response && response.warning) {
+                toast.warning(response.warning, { autoClose: 7000 });
+            }
+
             setIsModalOpen(false);
             loadData();
         } catch (error) {
@@ -142,18 +149,12 @@ export function Transactions() {
     return (
         <div className="p-6 max-w-5xl mx-auto">
             {/* Cabeçalho */}
-            <div className="flex justify-between items-center mb-6 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Transações</h1>
-                    <p className="text-gray-500 text-sm">Armazene seus gastos e receitas</p>
-                </div>
-                <button 
-                    onClick={handleOpenNew}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors cursor-pointer"
-                >
-                    + Nova Transação
-                </button>
-            </div>
+            <PageHeader 
+                title="Transações" 
+                subtitle="Armazene seus gastos e receitas" 
+                buttonText="+ Nova Transação" 
+                onButtonClick={handleOpenNew} 
+            />
 
             {/* Filtros */}
             <div className="flex flex-col md:flex-row gap-4 mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100 items-end">

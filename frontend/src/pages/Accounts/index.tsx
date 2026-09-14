@@ -4,9 +4,12 @@ import Swal from "sweetalert2";
 import { AccountService } from '../../services/account.service';
 import type { IAccount } from '../../types';
 
+import { PageHeader } from '../../components/PageHeader';
+
 export function Accounts() {
   const [accounts, setAccounts] = useState<IAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Controle do Modal e Edição
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -75,6 +78,8 @@ export function Accounts() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if(isSaving) return;
+    setIsSaving(true);
     try {
       const accountData = {
         name: formData.name,
@@ -95,6 +100,8 @@ export function Accounts() {
       loadAccounts();
     } catch (error) {
       toast.error("Erro ao salvar Caixinha. Verifique os dados.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -104,27 +111,24 @@ export function Accounts() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex justify-between items-end bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <div>
-              <h1 className="text-2xl font-bold text-gray-800">Caixinhas</h1>
-              <p className="text-gray-500 text-sm">Gerencie o dinheiro guardado para seus objetivos</p>
-          </div>
-          <div className="text-right">
-              <p className="text-sm font-medium text-gray-500 mb-1">Saldo Total</p>
-              <p className="text-2xl font-bold text-emerald-600">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalBalance)}
-              </p>
-          </div>
-      </div>
+      
+      <PageHeader 
+        title="Caixinhas" 
+        subtitle="Gerencie o dinheiro guardado para seus objetivos" 
+        buttonText="+ Nova Caixinha" 
+        onButtonClick={handleOpenNew} 
+      >
+        <div className="inline-block bg-gray-50 px-4 py-3 rounded-lg border border-gray-100"> <p className="text-sm font-medium text-gray-500 mb-1"> Saldo Total </p>
 
-          <div className="flex justify-end">
-              <button 
-                  onClick={handleOpenNew}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors cursor-pointer shadow-sm"
-              >
-                  + Nova Caixinha
-              </button>
-          </div>
+        <p className="text-xl font-bold text-emerald-600">
+        {new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+        }).format(totalBalance)}
+        </p>
+
+        </div>
+      </PageHeader>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {accounts.length === 0 ? (
@@ -226,7 +230,11 @@ export function Accounts() {
 
                           <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
                               <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors cursor-pointer">Cancelar</button>
-                              <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors cursor-pointer">Salvar</button>
+                              <button type="submit" 
+                                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 
+                                                text-white rounded-lg font-medium transition-colors cursor-pointer"
+                                      disabled={isSaving}
+                                      >{isSaving ? "Salvando..." : "Salvar"}</button>
                           </div>
                       </form>
                   </div>

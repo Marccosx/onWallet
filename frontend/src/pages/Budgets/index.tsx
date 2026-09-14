@@ -4,6 +4,7 @@ import Swal from "sweetalert2";
 import { BudgetService } from "../../services/budget.service";
 import type { IBudget, ICategory } from "../../types";
 import CategoryService from "../../services/category.service";
+import { PageHeader } from "../../components/PageHeader";
 
 export function Budgets() {
     const [budgets, setBudgets] = useState<IBudget[]>([]);
@@ -118,18 +119,12 @@ export function Budgets() {
     return (
         <div className="p-6 max-w-5xl mx-auto">
             {/* Cabeçalho */}
-            <div className="flex justify-between items-center mb-6 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Orçamentos</h1>
-                    <p className="text-gray-500 text-sm">Defina limites de gastos para cada categoria</p>
-                </div>
-                <button
-                    onClick={handleOpenNew}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors cursor-pointer"
-                >
-                    + Novo Orçamento
-                </button>
-            </div>
+            <PageHeader 
+                title="Orçamentos" 
+                subtitle="Defina limites de gastos para cada categoria" 
+                buttonText="+ Novo Orçamento" 
+                onButtonClick={handleOpenNew} 
+            />
 
             {/* Filtros */}
             <div className="flex gap-4 mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100 items-end">

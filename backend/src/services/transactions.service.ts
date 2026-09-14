@@ -119,11 +119,56 @@ export class TransactionService implements ITransactionService {
                 }
             }),
         ]);
-        return transaction;  
+        
+        let warning: string | undefined = undefined;
+        if (type === "EXPENSE") {
+          warning = await this.checkBudgetWarning(data.categoryId, new Date(data.create_at));
+        }
+
+        return { ...transaction, warning } as any;  
 
     } catch (error) {
       throw new Error((error as Error).message);
     }
+  }
+
+  // Novo método para checar se estourou o orçamento (Task 5.1)
+  private async checkBudgetWarning(categoryId: string, date: Date): Promise<string | undefined> {
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth();
+    const startDate = new Date(year, month, 1);
+    const endDate = new Date(year, month + 1, 1);
+
+    // 1. Achar o limite (busca no Orçamento explícito ou no padrão da Categoria)
+    let limit = 0;
+    const explicitBudget = await prisma.budget.findFirst({
+        where: { categoryId, month: { gte: startDate, lt: endDate } }
+    });
+    
+    if (explicitBudget) {
+        limit = explicitBudget.limit;
+    } else {
+        const category = await prisma.category.findUnique({ where: { id: categoryId } });
+        if (category && category.budgetLimit && category.budgetLimit > 0) {
+            limit = category.budgetLimit;
+        }
+    }
+
+    if (limit === 0) return undefined; // Nenhuma meta/limite definido
+
+    // 2. Somar gastos do mês
+    const result = await prisma.transaction.aggregate({
+        _sum: { amount: true },
+        where: { categoryId, type: "EXPENSE", create_at: { gte: startDate, lt: endDate } }
+    });
+    
+    const spent = result._sum.amount || 0;
+
+    if (spent > limit) {
+        return `Atenção: Você estourou o orçamento desta categoria! (Gasto: R$ ${spent.toFixed(2)} / Limite: R$ ${limit.toFixed(2)})`;
+    }
+
+    return undefined;
   }
 
   async updateTransaction(id: string, data: any): Promise<Transaction> {
