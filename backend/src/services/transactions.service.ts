@@ -73,6 +73,7 @@ export class TransactionService implements ITransactionService {
          throw new Error((error as Error).message);
       }
     }
+    //Compra parcelada
     if(installments > 1 ){
       const installmentAmount = data.amount / installments;
       const prismaOperations = [];
@@ -80,6 +81,7 @@ export class TransactionService implements ITransactionService {
       for(let i = 1; i <= installments; i++){
         const targetDate = new Date(data.create_at);
         targetDate.setMonth(targetDate.getMonth() + (i - 1))
+
         prismaOperations.push(
           prisma.transaction.create({
             data: {
@@ -91,8 +93,8 @@ export class TransactionService implements ITransactionService {
             }
           })
         );
-        
       }
+
       prismaOperations.push(
         prisma.account.update({
           where: {id: data.accountId},
@@ -102,11 +104,20 @@ export class TransactionService implements ITransactionService {
 
       try{
         const result = await prisma.$transaction(prismaOperations);
-        return result[0] as Transaction;
+
+        let warning: string | undefined = undefined;
+
+        if(type === "EXPENSE"){
+          warning = await this.checkBudgetWarning(data.categoryId, new Date(data.create_at));
+        }
+
+        return {...(result[0] as Transaction), warning} as any;
       }catch(error){
         throw new Error((error as Error).message);
       }
     }
+
+    //Transacao normal
     try {
       const [transaction] = await prisma.$transaction([
          prisma.transaction.create({ data: data }),
@@ -220,6 +231,7 @@ export class TransactionService implements ITransactionService {
         throw new Error((error as Error).message);
       }
     }
+    
     try {
       const [transactionRevert,updatedTransaction ] = await prisma.$transaction([
             prisma.account.update({
@@ -242,7 +254,13 @@ export class TransactionService implements ITransactionService {
                 }
             }),
         ]);
-    return updatedTransaction;
+        let warning: string | undefined = undefined;
+
+        if(updatedTransaction.type === "EXPENSE"){
+          warning = await this.checkBudgetWarning(updatedTransaction.categoryId, new Date(updatedTransaction.create_at));
+        }
+    return {...updatedTransaction, warning} as any;
+
     } catch (error) {
        throw new Error((error as Error).message);
     }
