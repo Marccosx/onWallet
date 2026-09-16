@@ -16,6 +16,7 @@ interface ICategory{
 }
 
 interface ITransaction {
+    warning?: string;
     id: string;
     description: string;
     amount: number;

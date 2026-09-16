@@ -39,7 +39,7 @@ export function Transactions() {
     const loadData = async () => {
         try {
             setIsLoading(true);
-            const dataCategories = await CategoryService.getAll(filterType === 'ALL' ? undefined : filterType);
+            const dataCategories = await CategoryService.getAll();
             setCategories(dataCategories);
         } catch (error) {
             console.error("Error ao buscar categorias", error)
@@ -361,7 +361,7 @@ export function Transactions() {
                                                 name="type" 
                                                 value="EXPENSE"
                                                 checked={formData.type === 'EXPENSE'}
-                                                onChange={(e) => setFormData({...formData, type: e.target.value})}
+                                                onChange={(e) => setFormData({...formData, type: e.target.value, categoryId: ''})}
                                                 className="text-emerald-600 focus:ring-emerald-500"
                                             />
                                             <span className="text-gray-700">Despesa</span>
@@ -372,7 +372,7 @@ export function Transactions() {
                                                 name="type" 
                                                 value="INCOME"
                                                 checked={formData.type === 'INCOME'}
-                                                onChange={(e) => setFormData({...formData, type: e.target.value})}
+                                                onChange={(e) => setFormData({...formData, type: e.target.value, categoryId: ''})}
                                                 className="text-emerald-600 focus:ring-emerald-500"
                                             />
                                             <span className="text-gray-700">Receita</span>
@@ -383,7 +383,7 @@ export function Transactions() {
                                                 name="type" 
                                                 value="TRANSFER"
                                                 checked={formData.type === 'TRANSFER'}
-                                                onChange={(e) => setFormData({...formData, type: e.target.value})}
+                                                onChange={(e) => setFormData({...formData, type: e.target.value, categoryId: ''})}
                                                 className="text-emerald-600 focus:ring-emerald-500"
                                             />
                                             <span className="text-gray-700">Transferência</span>
