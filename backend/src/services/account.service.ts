@@ -1,5 +1,6 @@
 import type { IAccountService } from "../interfaces/IAccountService.js";
 import  prisma  from "../lib/prisma.js";
+import { currentUserId } from "../lib/auth.js";
 
 
 export class AccountService implements IAccountService{
@@ -7,7 +8,7 @@ export class AccountService implements IAccountService{
     async getAccounts(){
         // Implement the logic to retrieve accounts from the database
         try{
-            const  accounts = await prisma.account.findMany();
+            const  accounts = await prisma.account.findMany({ where: { userId: currentUserId() } });
             return accounts;
         }catch(error){
             throw new Error("Error retrieving accounts");
@@ -26,8 +27,9 @@ export class AccountService implements IAccountService{
             throw new Error("Name field cannot be null")
         }
         try{
+            const { name, tag, balance, color } = accountData;
             const account = await prisma.account.create({
-                data: accountData,
+                data: { name, tag, balance, color, userId: currentUserId() },
             });
             return account;
         }catch(error){
@@ -40,10 +42,7 @@ export class AccountService implements IAccountService{
             throw new Error("Account ID is missing");
         }
         try{
-            const account = await prisma.account.findUnique({where: {id: accountId}});
-            if(!account){
-                throw new Error("Account not found")
-            }
+            const account = await prisma.account.findFirst({where: {id: accountId, userId: currentUserId()}});
             return account;
         }catch(error){
             throw new Error("Error retrieving account");
@@ -59,7 +58,11 @@ export class AccountService implements IAccountService{
             throw new Error("Account not found")
         }
         try{
-            account = await prisma.account.update({where: {id: accountId}, data:accountData})
+            const { name, tag, color, balance } = accountData;
+            if (balance !== undefined && (typeof balance !== "number" || !Number.isFinite(balance) || balance < 0)) {
+                throw new Error("Saldo inválido");
+            }
+            account = await prisma.account.update({where: {id: accountId, userId: currentUserId()}, data: { name, tag, color, balance }})
             return account;
             
         }catch(error){
@@ -69,7 +72,7 @@ export class AccountService implements IAccountService{
 
     async deleteAccount(accountId: string){
         let account = await this.getAccountById(accountId);
-        let transactionsCount = await prisma.transaction.count({where: {accountId: accountId}})
+        let transactionsCount = await prisma.transaction.count({where: {OR: [{accountId: accountId}, {destinationAccountId: accountId}]}})
         if(!account){
             throw new Error("Account not found")
         }
@@ -77,7 +80,7 @@ export class AccountService implements IAccountService{
             throw new Error("Cannot delete account with existing transactions")
         }
         try{
-            account = await prisma.account.delete({where: {id: accountId}})
+            account = await prisma.account.delete({where: {id: accountId, userId: currentUserId()}})
         }catch (error){
             throw new Error ("Error deleting account")
         }

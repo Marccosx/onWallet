@@ -2,6 +2,7 @@ import type { Category, Transaction,Account } from "@prisma/client";
 import prisma from "../lib/prisma.js";
 import type { dashBoardDTO } from "../Dtos/dashboardDTO.js";
 import type { IDashboardService } from "../interfaces/IDashboardService.js";
+import { currentUserId } from "../lib/auth.js";
 
 export class DashboardService implements IDashboardService {
 
@@ -31,6 +32,7 @@ export class DashboardService implements IDashboardService {
         try{
             const AmountAccounts = await prisma.account.aggregate({
                 _sum: {balance:true},
+                where: { userId: currentUserId() },
             });
             return AmountAccounts;
         }catch(error){
@@ -46,7 +48,7 @@ export class DashboardService implements IDashboardService {
         try{
             const IncomeTransactions = await prisma.transaction.aggregate({
                 _sum: {amount:true},
-                where:{create_at: {lte:date[1], gte:date[0]}, type:'INCOME'}
+                where:{create_at: {lte:date[1], gte:date[0]}, type:'INCOME', account: { userId: currentUserId() }}
             });
             return IncomeTransactions;
         }catch(error){
@@ -61,7 +63,7 @@ export class DashboardService implements IDashboardService {
         try{
             const ExpenseTransactions = await prisma.transaction.aggregate({
                 _sum: {amount:true},
-                where:{create_at: {lte:date[1], gte:date[0]}, type:'EXPENSE'}
+                where:{create_at: {lte:date[1], gte:date[0]}, type:'EXPENSE', account: { userId: currentUserId() }}
             });
             return ExpenseTransactions;
         }catch(error){
@@ -79,7 +81,7 @@ export class DashboardService implements IDashboardService {
             const CategoriesTransactions = await prisma.transaction.groupBy({
                 by:['categoryId'],
                 _sum:{amount:true},
-                where:{create_at: {lte:date[1], gte:date[0]}, type:'EXPENSE'},
+                where:{create_at: {lte:date[1], gte:date[0]}, type:'EXPENSE', account: { userId: currentUserId() }},
                 orderBy: {_count: {amount: 'desc'}}
         });
         return CategoriesTransactions || null;

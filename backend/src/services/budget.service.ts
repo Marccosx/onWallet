@@ -1,6 +1,7 @@
 import type { Budget } from "@prisma/client";
 import type {IBudgetService} from "../interfaces/IBudgetService.js";
 import prisma from "../lib/prisma.js";
+import { currentUserId } from "../lib/auth.js";
 
 export class BudgetService implements IBudgetService{
 
@@ -12,6 +13,7 @@ export class BudgetService implements IBudgetService{
             
             const budgets = await prisma.budget.findMany({
                 where:{
+                    category: { userId: currentUserId() },
                     month: 
                     {gte: startDate,
                          lt:endDate
@@ -19,7 +21,7 @@ export class BudgetService implements IBudgetService{
                 }
             });
 
-            const categoriesWithBudget = await prisma.category.findMany({where: {budgetLimit:{gt:0}}})
+            const categoriesWithBudget = await prisma.category.findMany({where: {budgetLimit:{gt:0}, userId: currentUserId()}})
             const allBudgets: any[] = [...budgets];
             for(const cat of categoriesWithBudget){
                 const alreadyHasBudget = budgets.find(b => b.categoryId === cat.id);
@@ -33,6 +35,7 @@ export class BudgetService implements IBudgetService{
                     _sum: { amount: true },
                     where: {
                         categoryId: budget.categoryId,
+                        category: { userId: currentUserId() },
                         type: "EXPENSE",
                         create_at: {
                             gte: startDate,
@@ -53,7 +56,7 @@ export class BudgetService implements IBudgetService{
 
     async getBudgetById(id: string): Promise<Budget | null> {
         try {
-            const budget = await prisma.budget.findUnique({ where: { id } });
+            const budget = await prisma.budget.findFirst({ where: { id, category: { userId: currentUserId() } } });
             return budget;
         } catch (error) {
             throw new Error((error as Error).message);
@@ -70,6 +73,8 @@ export class BudgetService implements IBudgetService{
         if(data.limit <= 0 ){
             throw new Error("Budget limit cannot be zero or negative");
         }
+        const ownedCategory = await prisma.category.findFirst({ where: { id: data.categoryId, userId: currentUserId() } });
+        if (!ownedCategory) throw new Error("Categoria não encontrada");
         const existingBudget = await prisma.budget.findFirst({
             where: {
                 categoryId: data.categoryId,
@@ -80,7 +85,7 @@ export class BudgetService implements IBudgetService{
             throw new Error("Budget for this category and month already exists");
         }
         try {
-            const budget = await prisma.budget.create({ data });
+            const budget = await prisma.budget.create({ data: { categoryId: data.categoryId, limit: data.limit, month: data.month } });
             return budget;
         } catch (error) {
             throw new Error((error as Error).message);
@@ -95,8 +100,13 @@ export class BudgetService implements IBudgetService{
         if(data.limit <= 0 ){
             throw new Error("Budget limit cannot be zero or negative");
         }
+        if (data.categoryId) {
+            const ownedCategory = await prisma.category.findFirst({ where: { id: data.categoryId, userId: currentUserId() } });
+            if (!ownedCategory) throw new Error("Categoria não encontrada");
+        }
         try {
-            const budget = await prisma.budget.update({ where: { id: id }, data });
+            const { categoryId, limit, month } = data;
+            const budget = await prisma.budget.update({ where: { id, category: { userId: currentUserId() } }, data: { categoryId, limit, month } });
             return budget;
         } catch (error) {
             throw new Error((error as Error).message);
@@ -109,7 +119,7 @@ export class BudgetService implements IBudgetService{
             throw new Error("Budget not found");
         }
         try {
-            await prisma.budget.delete({ where: { id } });
+            await prisma.budget.delete({ where: { id, category: { userId: currentUserId() } } });
         } catch (error) {
             throw new Error((error as Error).message);
         }

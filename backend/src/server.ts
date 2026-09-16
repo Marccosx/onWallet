@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import accountRouter from "./routes/account.routes.js";
@@ -7,10 +8,13 @@ import budgetRouter from "./routes/budget.routes.js";
 import dashboardRouter from "./routes/dashborad.routes.js"
 import swaggerUi from "swagger-ui-express";
 import swaggerJSDoc from "swagger-jsdoc";
+import authRouter from "./routes/auth.routes.js";
+import { checkOrigin, requireAuth } from "./lib/auth.js";
 
 const app = express();
 app.use(express.json())
-app.use(cors({ origin: process.env.FRONTEND_URL || true }));
+app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173", credentials: true }));
+app.use(checkOrigin);
 const port = Number(process.env.PORT) || 3333;
 
 const swaggerOptions = {
@@ -38,11 +42,12 @@ app.get("/health", (req, res) => {
   res.send("OK")
 })
 
-app.use('/accounts', accountRouter)
-app.use('/categories', categoryRouter)
-app.use('/transactions', transactionRouter)
-app.use('/budgets', budgetRouter)
-app.use('/dashboards', dashboardRouter)
+app.use('/auth', authRouter)
+app.use('/accounts', requireAuth, accountRouter)
+app.use('/categories', requireAuth, categoryRouter)
+app.use('/transactions', requireAuth, transactionRouter)
+app.use('/budgets', requireAuth, budgetRouter)
+app.use('/dashboards', requireAuth, dashboardRouter)
 
 app.listen(port, () => {
   console.log(`Server is running on port http://localhost:${port}`);

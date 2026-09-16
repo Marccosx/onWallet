@@ -11,61 +11,105 @@ datasource db {
 }
 
 model Account {
-  id String @id @default(uuid())
-  name String
-  tag String?
-  balance Float @default(0)
-  color String?
+  id         String   @id @default(uuid())
+  name       String
+  tag        String?
+  balance    Float    @default(0)
+  color      String?
   created_at DateTime @default(now())
+  userId     String
 
+  user              User           @relation(fields: [userId], references: [id])
+  transactions      Transaction[] @relation("TransactionAccount")
+  transfersReceived Transaction[] @relation("TransferDestination")
 
-transactions Transaction[] @relation("TransactionAccount")
-transfersReceived Transaction[] @relation("TransferDestination")
+  @@index([userId])
   @@map("account")
 }
 
-model Category{
-  id String @id @default(uuid())
-  name String
-  color String?
-  icon String?
-  type TypeCategory
-  budgetLimit Float?
+model Category {
+  id           String        @id @default(uuid())
+  name         String
+  color        String?
+  icon         String?
+  type         TypeCategory
+  budgetLimit  Float?
   transactions Transaction[]
-  budget Budget[]
+  budget       Budget[]
+  userId       String
 
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
   @@map("category")
 }
 
-model Transaction{
-  id String @id @default(uuid())
-  description String
-  amount Float
-  type String
-  create_at DateTime @default(now())
-  edited_at DateTime? @updatedAt
-  accountId String
-  categoryId String
-  notes String?
+model Transaction {
+  id                   String    @id @default(uuid())
+  description          String
+  amount               Float
+  type                 String
+  create_at            DateTime  @default(now())
+  edited_at            DateTime? @updatedAt
+  accountId            String
+  categoryId           String
+  notes                String?
   destinationAccountId String?
 
-  destinationAccount Account? @relation("TransferDestination", fields:[destinationAccountId], references:[id])
-  account Account @relation("TransactionAccount", fields: [accountId], references: [id])
-  category Category @relation(fields: [categoryId], references: [id])
+  destinationAccount Account? @relation("TransferDestination", fields: [destinationAccountId], references: [id])
+  account            Account  @relation("TransactionAccount", fields: [accountId], references: [id])
+  category           Category @relation(fields: [categoryId], references: [id])
+
   @@map("transaction")
 }
 
-model Budget{
-  id String @id @default(uuid())
+model Budget {
+  id         String   @id @default(uuid())
   categoryId String
-  month DateTime
-  limit Float
+  month      DateTime
+  limit      Float
 
   category Category @relation(fields: [categoryId], references: [id])
+
   @@map("budget")
 }
 
-enum TypeCategory{
+enum TypeCategory {
   INCOME
   EXPENSE
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         userRole @default(USER)
+  isActive     Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  accounts   Account[]
+  categories Category[]
+  sessions   Session[]
+
+  @@map("user")
+}
+
+enum userRole {
+  ADMIN
+  USER
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("session")
 }
