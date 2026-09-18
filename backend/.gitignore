@@ -2,10 +2,11 @@ node_modules
 /dist/
 # Keep environment variables out of version control
 .env
-/src/prisma/dev.db
+/src/prisma/dev.db*
 /.admin-bootstrap.local
 /src/generated/prisma
 
 /src/generated/prisma
 
 /src/generated/prisma
+/src/prisma/teste.db*

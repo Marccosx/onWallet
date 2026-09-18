@@ -1,9 +1,9 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash, randomBytes } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
-import type { User } from "@prisma/client";
 import prisma from "./prisma.js";
 
+type User = NonNullable<Awaited<ReturnType<typeof prisma.user.findUnique>>>;
 export type PublicUser = Pick<User, "id" | "name" | "email" | "role" | "isActive" | "created_at">;
 const authContext = new AsyncLocalStorage<PublicUser>();
 const cookieName = "onwallet_session";
