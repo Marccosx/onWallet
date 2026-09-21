@@ -74,10 +74,12 @@ Em um PostgreSQL vazio, o primeiro deploy cria as tabelas automaticamente. Se o 
 
 1. Importe o mesmo repositório na Vercel.
 2. Configure **Root Directory** como `frontend`.
-3. Adicione a variável `VITE_API_URL` com a URL pública do serviço do Railway, sem barra no final.
+3. Confira o destino `/api/:path*` em `frontend/vercel.json`: ele deve apontar para o domínio público da API no Railway. O frontend de produção usa `/api` no próprio domínio da Vercel; `VITE_API_URL` é usada somente no desenvolvimento local e pode ser removida das variáveis da Vercel.
 4. Use `npm run build` como Build Command e `dist` como Output Directory.
 
 Depois do deploy, teste `https://URL-DA-API/health` antes de abrir o frontend.
+
+Teste também `https://URL-DO-FRONTEND/api/health`, que deve retornar `OK`. A regra `/api/:path*` precisa permanecer antes da regra que retorna `index.html`. Esse proxy mantém o cookie de sessão `HttpOnly; SameSite=Lax` no domínio do frontend, permitindo que login, recarregamento da página e logout usem a mesma sessão. No Railway, mantenha `NODE_ENV=production` e `FRONTEND_URL` igual à origem do frontend (por exemplo, `https://on-wallet-eight.vercel.app`, sem barra final). Se mudar o domínio da API, atualize o destino do proxy e publique novamente o frontend.
 
 ---
 

@@ -1,7 +1,8 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3333",
+  // Production requests use the Vercel proxy so the session cookie is same-site.
+  baseURL: import.meta.env.PROD ? "/api" : (import.meta.env.VITE_API_URL || "http://localhost:3333"),
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
