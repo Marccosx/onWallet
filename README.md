@@ -63,7 +63,12 @@ O frontend deve ser publicado na Vercel e o backend junto com um PostgreSQL no R
    - `API_URL`: URL pública da API no Railway.
 4. Use `npm run build` como Build Command e `npm start` como Start Command.
 
-O comando de start executa `prisma db push` antes de iniciar a API. Isso cria/atualiza as tabelas do PostgreSQL no primeiro deploy. As migrations existentes foram criadas para SQLite e não devem ser executadas nesse banco PostgreSQL.
+O comando de start executa `prisma migrate deploy` antes de iniciar a API. O `prisma.config.ts` seleciona o histórico conforme o provider do `schema.prisma`: `src/prisma/migrations-postgresql` para PostgreSQL e `src/prisma/migrations` para SQLite local. No Railway, publique o schema com `provider = "postgresql"`.
+
+Em um PostgreSQL vazio, o primeiro deploy cria as tabelas automaticamente. Se o banco já contém tabelas criadas por `db push`, é necessário reconciliar o histórico antes do deploy:
+
+- **Dados descartáveis:** depois de publicar a correção, execute uma única vez `npx prisma migrate reset --force --skip-seed --skip-generate` no ambiente do serviço da API no Railway, dentro de `/app`. Esse comando apaga os dados do schema configurado e aplica o novo histórico. Depois reinicie o serviço com o Start Command normal (`npm start`). Não configure o reset como comando permanente de deploy. Recrie o administrador após o reset.
+- **Dados que precisam ser preservados:** não execute reset. Compare o banco existente com o schema e prepare as alterações necessárias antes de estabelecer o baseline, conforme a [documentação do Prisma](https://www.prisma.io/docs/orm/prisma-migrate/workflows/baselining). Só marque a migration inicial como aplicada quando o banco corresponder a ela.
 
 ### Vercel
 
