@@ -11,6 +11,11 @@ describe("Autenticação com usuário cadastrado",()=>{
     let userId: string | undefined;
     let email: string;
 
+    function requireUserId(): string {
+        if (!userId) throw new Error("O usuário de teste não foi criado");
+        return userId;
+    }
+
     beforeEach(async()=>{
         userId = undefined;
         email = `auth-${randomUUID()}@example.com`;
@@ -59,7 +64,7 @@ describe("Autenticação com usuário cadastrado",()=>{
 
         expect(verifyResponse.status).toBe(401)
 
-        const sessionCount = await prisma.session.count({where:{userId:userId}});
+        const sessionCount = await prisma.session.count({where:{userId: requireUserId()}});
 
         expect(sessionCount).toBe(0)
 
@@ -72,7 +77,7 @@ describe("Autenticação com usuário cadastrado",()=>{
 
         expect(loginResponse.status).toBe(200)
 
-        const updated = await prisma.session.updateMany({where:{userId:userId}, data:{expiresAt: new Date("2000-01-01T00:00:00Z")}});
+        const updated = await prisma.session.updateMany({where:{userId: requireUserId()}, data:{expiresAt: new Date("2000-01-01T00:00:00Z")}});
 
         expect(updated.count).toBe(1);
 
@@ -94,7 +99,7 @@ describe("Autenticação com usuário cadastrado",()=>{
         expect(response.headers["set-cookie"]).toBeUndefined();
 
         const sessionCount = await prisma.session.count({
-            where:{userId},
+            where:{userId: requireUserId()},
         });
 
         expect(sessionCount).toBe(0);
@@ -121,7 +126,7 @@ describe("Autenticação com usuário cadastrado",()=>{
         expect(sessionCookie).toBeDefined();
         expect(sessionCookie).toContain("HttpOnly");
 
-        const sessionCount = await prisma.session.count({where: {userId: userId}});
+        const sessionCount = await prisma.session.count({where: {userId: requireUserId()}});
         
         expect(sessionCount).toBe(1)
 
