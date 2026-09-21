@@ -1,7 +1,11 @@
 import {api} from "./api";
-import type { IAccount } from "../types/index";
+import type { IAccount, GoalPlan } from "../types/index";
 
 export const AccountService = {
+    previewGoal: async (data: Partial<IAccount>, signal: AbortSignal): Promise<GoalPlan | null> => {
+        const response = await api.post('/accounts/goal-preview', data, { signal });
+        return response.data;
+    },
     getAll: async () : Promise<IAccount[]> => {
         const response = await api.get("/accounts");
         return response.data;

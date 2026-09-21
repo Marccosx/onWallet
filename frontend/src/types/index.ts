@@ -1,9 +1,26 @@
+export interface GoalPlan {
+    remaining: number;
+    progress: number;
+    startMonth: string;
+    status: 'COMPLETED' | 'OVERDUE' | 'PLANNED';
+    months: number;
+    monthlyAmount: number | null;
+    lastContribution: number | null;
+    completionMonth: string | null;
+}
+
 interface IAccount {
     id: string;
     name: string;
     tag?: string;
     balance: number;
     color: string;
+    goalAmount?: number | null;
+    goalMode?: 'DEADLINE' | 'MONTHLY' | null;
+    goalStartMonth?: string | null;
+    goalTargetMonth?: string | null;
+    goalMonthlyAmount?: number | null;
+    goalPlan?: GoalPlan | null;
 }
 
 interface ICategory{

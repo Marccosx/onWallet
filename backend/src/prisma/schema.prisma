@@ -18,6 +18,11 @@ model Account {
   color      String?
   created_at DateTime @default(now())
   userId     String
+  goalAmount Float?
+  goalMode String?
+  goalStartMonth String?
+  goalTargetMonth String?
+  goalMonthlyAmount Float?
 
   user              User           @relation(fields: [userId], references: [id])
   transactions      Transaction[] @relation("TransactionAccount")

@@ -1,10 +1,22 @@
 import express from "express";
 import AccountController from "../controllers/account.controller.js";
 import AccountService from "../services/account.service.js";
+import { calculateGoal, parseGoal, validateMoney } from "../lib/account-goal.js";
 
 const accountRouter = express.Router();
 const accountService = new AccountService();
 const accountController = new AccountController(accountService);
+
+// Preview shares the saved goal's validation and calculation, without writing data.
+accountRouter.post("/goal-preview", (req, res) => {
+  try {
+    if (!req.body || typeof req.body !== "object") throw new Error("Informe os dados da meta.");
+    const balance = validateMoney(req.body.balance ?? 0, "Saldo");
+    res.json(calculateGoal(parseGoal(req.body), balance));
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : "Meta inválida." });
+  }
+});
 
 
 /**

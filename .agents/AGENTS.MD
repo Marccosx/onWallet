@@ -127,7 +127,17 @@ Resultado:
 - Sessão expirada: teste faz login com agente, altera expiresAt de exatamente uma sessão do usuário para uma data passada e verifica HTTP 401 em GET /auth/me. Código revisado; última execução da suíte completa informada pelo usuário: 7 testes passaram em 2 arquivos (6 de autenticação e 1 de health).
 
 ## Próxima tarefa
-Iniciar o backlog de minimização do payload de /auth/login e /auth/me. Primeiro identificar os campos retornados por publicUser em backend/src/lib/auth.ts; depois verificar quais são consumidos pelo frontend antes de definir um DTO específico. Não remover campos antes de revisar seus usos, inclusive nas rotas administrativas que compartilham publicUser.
+Validar o uso das metas de caixinhas no navegador com o cenário da viagem. Depois retomar o backlog de minimização do payload de /auth/login e /auth/me, revisando usos no frontend e rotas administrativas antes de remover campos.
+
+## Caixinhas e metas (setembro/2026)
+- Implementação completa autorizada pelo usuário para esta demanda, com documentação para estudo em `docs/caixinhas-e-metas.md`.
+- Criação aceita saldo zero ou omitido. Metas são opcionais e separadas do saldo real.
+- Duas modalidades: meta + contribuição mensal calcula prazo; meta + prazo calcula contribuição. Ambas consideram saldo atual e mês inicial.
+- Cálculo centralizado no backend, em centavos, com prévia autenticada sem escrita em POST /accounts/goal-preview. Os cartões exibem progresso, restante e previsão.
+- Planejamento não cria movimentações automaticamente. Meses inicial/final são inclusivos; meses passados são desconsiderados; quem já contribuiu no mês deve planejar a próxima contribuição a partir do mês seguinte.
+- Cinco campos opcionais de meta no model Account. Migrations aditivas separadas para SQLite e PostgreSQL; SQLite local aplicado e Prisma Client regenerado. Produção não alterada.
+- Caixinha de dívidas e visão de parcelas futuras continuam fora do escopo implementado.
+- Validação desta entrega: 38 testes passaram em 6 arquivos; builds backend/frontend passaram. Validação visual em navegador pendente.
 
 ## Regra importante para testes
 Os testes NÃO devem depender de usuários cadastrados manualmente no banco de desenvolvimento.

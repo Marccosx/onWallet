@@ -1,89 +1,73 @@
+import type { Account } from "@prisma/client";
 import type { IAccountService } from "../interfaces/IAccountService.js";
-import  prisma  from "../lib/prisma.js";
+import prisma from "../lib/prisma.js";
 import { currentUserId } from "../lib/auth.js";
+import { calculateGoal, parseGoal, validateMoney } from "../lib/account-goal.js";
 
+function inputObject(input: unknown): Record<string, unknown> {
+    if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Informe os dados da caixinha.");
+    return input as Record<string, unknown>;
+}
 
-export class AccountService implements IAccountService{
+function optionalText(value: unknown, field: string): string | null | undefined {
+    if (value === undefined || value === null) return value;
+    if (typeof value !== "string") throw new Error(`${field} deve ser um texto.`);
+    return value.trim();
+}
 
-    async getAccounts(){
-        // Implement the logic to retrieve accounts from the database
-        try{
-            const  accounts = await prisma.account.findMany({ where: { userId: currentUserId() } });
-            return accounts;
-        }catch(error){
-            throw new Error("Error retrieving accounts");
-        }
+function withGoal(account: Account) {
+    return { ...account, goalPlan: calculateGoal(account, account.balance) };
+}
+
+export class AccountService implements IAccountService {
+    async getAccounts() {
+        const accounts = await prisma.account.findMany({ where: { userId: currentUserId() } });
+        return accounts.map(withGoal);
     }
 
-    async createAccount(accountData: any){
-        // Implement the logic to create a new account in the database
-        if(!accountData) {
-            throw new Error("Account data is missing");
-        }
-        if (accountData.balance < 0){
-            throw new Error("Balance cannot be negative")
-        }
-        if(!accountData.name){
-            throw new Error("Name field cannot be null")
-        }
-        try{
-            const { name, tag, balance, color } = accountData;
-            const account = await prisma.account.create({
-                data: { name, tag, balance, color, userId: currentUserId() },
-            });
-            return account;
-        }catch(error){
-            throw new Error("Error creating account");
-        }
+    async createAccount(input: unknown) {
+        const data = inputObject(input);
+        const name = optionalText(data.name, "Nome");
+        if (!name) throw new Error("Informe o nome da caixinha.");
+        const balance = validateMoney(data.balance ?? 0, "Saldo");
+        const goal = parseGoal(data);
+        calculateGoal(goal, balance);
+        const account = await prisma.account.create({ data: {
+            name, balance, tag: optionalText(data.tag, "Tag") ?? null,
+            color: optionalText(data.color, "Cor") ?? null, ...goal, userId: currentUserId(),
+        } });
+        return withGoal(account);
     }
 
-    async getAccountById(accountId: string){
-        if(!accountId) {
-            throw new Error("Account ID is missing");
-        }
-        try{
-            const account = await prisma.account.findFirst({where: {id: accountId, userId: currentUserId()}});
-            return account;
-        }catch(error){
-            throw new Error("Error retrieving account");
-        }
+    async getAccountById(id: string) {
+        const account = await prisma.account.findFirst({ where: { id, userId: currentUserId() } });
+        return account ? withGoal(account) : null;
     }
 
-    async updateAccount(accountId: string, accountData:any){
-        if(!accountId) {
-            throw new Error("Account ID is missing");
-        }
-        let account = await this.getAccountById(accountId)
-        if(!account){
-            throw new Error("Account not found")
-        }
-        try{
-            const { name, tag, color, balance } = accountData;
-            if (balance !== undefined && (typeof balance !== "number" || !Number.isFinite(balance) || balance < 0)) {
-                throw new Error("Saldo inválido");
-            }
-            account = await prisma.account.update({where: {id: accountId, userId: currentUserId()}, data: { name, tag, color, balance }})
-            return account;
-            
-        }catch(error){
-            throw new Error("Error updating account");
-        }
+    async updateAccount(id: string, input: unknown) {
+        const account = await this.getAccountById(id);
+        if (!account) throw new Error("Caixinha não encontrada.");
+        const data = inputObject(input);
+        const goal = parseGoal(data, account);
+        const name = data.name === undefined ? account.name : optionalText(data.name, "Nome");
+        if (!name) throw new Error("Informe o nome da caixinha.");
+        const balance = data.balance === undefined ? undefined : validateMoney(data.balance, "Saldo");
+        calculateGoal(goal, balance ?? account.balance);
+        const updated = await prisma.account.update({ where: { id, userId: currentUserId() }, data: {
+            name, ...goal,
+            ...(balance === undefined ? {} : { balance }),
+            ...(data.tag === undefined ? {} : { tag: optionalText(data.tag, "Tag") ?? null }),
+            ...(data.color === undefined ? {} : { color: optionalText(data.color, "Cor") ?? null }),
+        } });
+        return withGoal(updated);
     }
 
-    async deleteAccount(accountId: string){
-        let account = await this.getAccountById(accountId);
-        let transactionsCount = await prisma.transaction.count({where: {OR: [{accountId: accountId}, {destinationAccountId: accountId}]}})
-        if(!account){
-            throw new Error("Account not found")
-        }
-        if(transactionsCount > 0){
-            throw new Error("Cannot delete account with existing transactions")
-        }
-        try{
-            account = await prisma.account.delete({where: {id: accountId, userId: currentUserId()}})
-        }catch (error){
-            throw new Error ("Error deleting account")
-        }
+    async deleteAccount(id: string) {
+        const account = await this.getAccountById(id);
+        if (!account) throw new Error("Caixinha não encontrada.");
+        const count = await prisma.transaction.count({ where: { OR: [{ accountId: id }, { destinationAccountId: id }] } });
+        if (count > 0) throw new Error("Não é possível excluir uma caixinha com movimentações.");
+        await prisma.account.delete({ where: { id, userId: currentUserId() } });
     }
 }
 

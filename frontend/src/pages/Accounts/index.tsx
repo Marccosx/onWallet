@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
+import { isAxiosError } from 'axios';
+import { GoalPlanner, GoalSummary, goalPayload, initialGoal } from './GoalPlanner';
 import { AccountService } from '../../services/account.service';
 import type { IAccount } from '../../types';
 
@@ -14,6 +16,7 @@ export function Accounts() {
   // Controle do Modal e Edição
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [goal, setGoal] = useState(initialGoal);
   const [formData, setFormData] = useState({
     name: '',
     tag: '',
@@ -39,10 +42,12 @@ export function Accounts() {
   const handleOpenNew = () => {
     setEditingId(null);
     setFormData({ name: '', tag: '', balance: 0, color: '#8A05BE' });
+    setGoal(initialGoal());
     setIsModalOpen(true);
   };
 
   const handleEdit = (account: IAccount) => {
+    setGoal(initialGoal(account));
     setEditingId(account.id);
     setFormData({
       name: account.name,
@@ -86,6 +91,7 @@ export function Accounts() {
         tag: formData.tag,
         balance: Number(formData.balance),
         color: formData.color,
+        ...goalPayload(goal),
       };
 
       if (editingId) {
@@ -99,7 +105,7 @@ export function Accounts() {
       setIsModalOpen(false);
       loadAccounts();
     } catch (error) {
-      toast.error("Erro ao salvar Caixinha. Verifique os dados.");
+      toast.error(isAxiosError(error) ? error.response?.data?.error ?? "Erro ao salvar caixinha." : "Erro ao salvar caixinha.");
     } finally {
       setIsSaving(false);
     }
@@ -147,7 +153,7 @@ export function Accounts() {
                                       {account.tag || 'Sem tag'}
                                   </span>
                               </div>
-                              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex gap-2">
                                   <button onClick={() => handleEdit(account)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded cursor-pointer transition-colors">Editar</button>
                                   <button onClick={() => handleDelete(account.id)} className="text-red-600 hover:bg-red-50 p-1.5 rounded cursor-pointer transition-colors">Excluir</button>
                               </div>
@@ -159,6 +165,7 @@ export function Accounts() {
                                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.balance)}
                               </p>
                           </div>
+                          {account.goalPlan && account.goalAmount != null && <GoalSummary plan={account.goalPlan} amount={account.goalAmount} />}
                       </div>
                   ))
               )}
@@ -166,7 +173,7 @@ export function Accounts() {
 
           {isModalOpen && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                  <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                  <div role="dialog" aria-modal="true" aria-label={editingId ? 'Editar caixinha' : 'Nova caixinha'} className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90dvh] overflow-y-auto animate-in fade-in zoom-in duration-200">
                       <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
                           <h2 className="text-xl font-bold text-gray-800">
                               {editingId ? 'Editar Caixinha' : 'Nova Caixinha'}
@@ -217,16 +224,19 @@ export function Accounts() {
                           <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">Saldo Atual (R$)</label>
                               <input 
-                                  required
                                   type="number" 
                                   step="0.01"
+                                  min="0"
+                                  max="10000000000"
                                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                                  value={formData.balance === 0 ? '' : formData.balance}
+                                  value={formData.balance}
                                   onChange={(e) => setFormData({...formData, balance: Number(e.target.value)})}
                                   placeholder="0.00"
                               />
-                              <p className="text-xs text-gray-500 mt-1">Coloque o valor que já existe guardado nela.</p>
+                              <p className="text-xs text-gray-500 mt-1">Valor já guardado. Pode começar com zero; vazio também será salvo como R$ 0,00.</p>
                           </div>
+
+                          <GoalPlanner value={goal} onChange={setGoal} balance={formData.balance} />
 
                           <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
                               <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors cursor-pointer">Cancelar</button>
