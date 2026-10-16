@@ -2,6 +2,7 @@ import type { Transaction } from "@prisma/client";
 import type { ITransactionService } from "../interfaces/ITransactionService.js";
 import prisma from "../lib/prisma.js";
 import { currentUserId } from "../lib/auth.js";
+import { randomUUID } from "node:crypto";
 
 type TransactionType = "EXPENSE" | "INCOME" | "TRANSFER";
 type TransactionInput = {
@@ -95,31 +96,59 @@ export class TransactionService implements ITransactionService {
   async createTransaction(data: any): Promise<Transaction> {
     const input = parseInput(data);
     const installments = data.installments ?? 1;
+    const installmentGroupId = installments > 1 ? randomUUID() : null;
     if (!Number.isInteger(installments) || installments < 1 || installments > 24 || (installments > 1 && input.type !== "EXPENSE")) {
       throw new Error("Parcelas inválidas");
     }
+
+    const assumePastInstallmentsPaid = data.assumePastInstallmentsPaid === undefined ? true : data.assumePastInstallmentsPaid;
+    if(typeof assumePastInstallmentsPaid !== "boolean"){
+      throw new Error("Valor inválido para assumir parcelas passadas como pagas");
+    }
+
+    const today = new Date();
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Bahia', year: 'numeric', month: 'numeric',
+    }).formatToParts(today);
+    const currentMonth = Number(parts.find(part => part.type === 'year')!.value) * 12
+      + Number(parts.find(part => part.type === 'month')!.value) - 1;
+    const totalCents = Math.round(input.amount * 100);
+    if (!Number.isSafeInteger(totalCents) || (installments > 1 && totalCents < installments)) {
+      throw new Error("Valor insuficiente para dividir em parcelas de pelo menos R$ 0,01");
+    }
+    const baseCents = Math.floor(totalCents / installments);
+    const remainderCents = totalCents % installments;
     const transaction = await prisma.$transaction(async (tx) => {
       await this.checkReferences(tx, input);
       let first: Transaction | undefined;
       for (let i = 0; i < installments; i++) {
         const date = new Date(input.create_at);
         date.setUTCMonth(date.getUTCMonth() + i);
+        const historicalPayment = installments > 1 && assumePastInstallmentsPaid && (date.getUTCFullYear() * 12 + date.getUTCMonth()) < currentMonth;
         const created = await tx.transaction.create({
           data: {
             ...input,
-            amount: input.amount / installments,
+            amount: installments > 1 ? (baseCents + (i < remainderCents ? 1 : 0)) / 100 : input.amount,
             description: installments > 1 ? `${input.description} (${i + 1}/${installments})` : input.description,
             create_at: date,
+            installmentGroupId,
+            installmentNumber: installments > 1 ? i + 1 : null,
+            installmentCount: installments > 1 ? installments : null,
+            paidAt: installments === 1 ? input.create_at : null,
+            balanceApplied: installments === 1,
+            historicalPayment,
           },
         });
         if (!first) first = created;
       }
-      const changes = new Map<string, number>();
-      this.applyBalance(changes, input, 1);
-      await this.persistBalance(tx, changes);
+      if(installments === 1){
+        const changes = new Map<string, number>();
+        this.applyBalance(changes, input, 1);
+        await this.persistBalance(tx, changes);
+      }
       return first!;
     });
-    const warning = input.type === "EXPENSE" ? await this.checkBudgetWarning(input.categoryId, input.create_at) : undefined;
+    const warning = input.type === "EXPENSE" && installments === 1? await this.checkBudgetWarning(input.categoryId, input.create_at) : undefined;
     return { ...transaction, warning } as Transaction;
   }
 
@@ -133,7 +162,16 @@ export class TransactionService implements ITransactionService {
     if (limit <= 0) return undefined;
     const result = await prisma.transaction.aggregate({
       _sum: { amount: true },
-      where: { categoryId, type: "EXPENSE", account: { userId: currentUserId() }, create_at: { gte: start, lt: end } },
+      where: {
+        categoryId,
+        type: "EXPENSE",
+        account: { userId: currentUserId() },
+        balanceApplied: true,
+        OR: [
+          { installmentGroupId: null, create_at: { gte: start, lt: end } },
+          { installmentGroupId: { not: null }, paidAt: { gte: start, lt: end } },
+        ],
+      },
     });
     const spent = result._sum.amount ?? 0;
     return spent > limit ? `Atenção: Você estourou o orçamento desta categoria! (Gasto: R$ ${spent.toFixed(2)} / Limite: R$ ${limit.toFixed(2)})` : undefined;
@@ -146,25 +184,118 @@ export class TransactionService implements ITransactionService {
       const input = parseInput(data, previous);
       await this.checkReferences(tx, input);
       const changes = new Map<string, number>();
-      this.applyBalance(changes, parseInput(previous), -1);
-      this.applyBalance(changes, input, 1);
+      if(previous.balanceApplied){
+        this.applyBalance(changes, parseInput(previous), -1);
+        this.applyBalance(changes, input, 1);
+      }
       const transaction = await tx.transaction.update({ where: { id, account: { userId: currentUserId() } }, data: input });
       await this.persistBalance(tx, changes);
       return transaction;
     });
-    const warning = updated.type === "EXPENSE" ? await this.checkBudgetWarning(updated.categoryId, updated.create_at) : undefined;
+    const warningDate = updated.installmentGroupId ? updated.paidAt : updated.create_at;
+    const warning =
+      updated.type === "EXPENSE" && updated.balanceApplied && warningDate
+      ? await this.checkBudgetWarning(updated.categoryId, warningDate)
+      : undefined;
     return { ...updated, warning } as Transaction;
   }
 
-  async deleteTransaction(id: string): Promise<void> {
+  async deleteTransaction(id: string, scope: "single" | "group" = "single"): Promise<void> {
     await prisma.$transaction(async (tx) => {
       const previous = await tx.transaction.findFirst({ where: { id, account: { userId: currentUserId() } } });
       if (!previous) throw new Error("Transação não encontrada");
-      const changes = new Map<string, number>();
-      this.applyBalance(changes, parseInput(previous), -1);
-      await tx.transaction.delete({ where: { id, account: { userId: currentUserId() } } });
-      await this.persistBalance(tx, changes);
+      
+      if (scope === "group" && !previous.installmentGroupId) {
+        throw new Error("Transação não faz parte de um grupo de parcelas");
+      }
+      const transactions = scope === "group"
+        ? await tx.transaction.findMany({
+          where: {
+            installmentGroupId: previous.installmentGroupId!,
+            account:{userId: currentUserId()},
+          },
+        }) : [previous];
+      const changesTX = new Map<string, number>();
+      for(const t of transactions){
+        if(t.balanceApplied){
+          this.applyBalance(changesTX, parseInput(t), -1);
+        }
+      }
+      await tx.transaction.deleteMany({
+        where: {
+          id: {in: transactions.map(t=> t.id)},
+          account:{userId: currentUserId()},
+        },
+      });
+
+      await this.persistBalance(tx, changesTX);
+
     });
+  }
+
+  async payInstallment(id: string): Promise<Transaction> {
+    const paid = await prisma.$transaction(async (tx) => {
+    const userId = currentUserId();
+
+    const parcela = await tx.transaction.findFirst({
+      where: { id, account: { userId } },
+    });
+
+    if (
+      !parcela ||
+      !parcela.installmentGroupId ||
+      parcela.type !== "EXPENSE" ||
+      parcela.balanceApplied ||
+      parcela.historicalPayment
+    ) {
+      throw new Error("Parcela pendente não encontrada");
+    }
+
+    const debit = await tx.account.updateMany({
+      where: {
+        id: parcela.accountId,
+        userId,
+        balance: { gte: parcela.amount },
+      },
+      data: { balance: { decrement: parcela.amount } },
+    });
+
+    if (debit.count !== 1) {
+      throw new Error("Saldo insuficiente para pagar a parcela");
+    }
+
+    const payment = await tx.transaction.updateMany({
+      where: {
+        id,
+        account: { userId },
+        balanceApplied: false,
+        paidAt: null,
+        historicalPayment: false,
+      },
+      data: {
+        balanceApplied: true,
+        paidAt: new Date(),
+      },
+    });
+
+    if (payment.count !== 1) {
+      throw new Error("Parcela já paga");
+    }
+
+    return tx.transaction.findUniqueOrThrow({ where: { id } });
+    });
+
+    // O pagamento já foi confirmado. Um erro no aviso não pode fazer a API
+    // responder como se o débito tivesse falhado.
+    let warning: string | undefined;
+    if (paid.paidAt) {
+      try {
+        warning = await this.checkBudgetWarning(paid.categoryId, paid.paidAt);
+      } catch (error) {
+        console.error("Não foi possível calcular o aviso de orçamento após o pagamento", error);
+      }
+    }
+    return { ...paid, warning } as Transaction;
   }
 }
 

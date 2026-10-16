@@ -7,6 +7,24 @@ import { CategoryService } from "../../services/category.service";
 import { AccountService } from "../../services/account.service";
 import { PageHeader } from "../../components/PageHeader";
 
+function InstallmentStatus({ transaction }: { transaction: ITransaction }) {
+    if (!transaction.installmentGroupId) return null;
+
+    if (transaction.historicalPayment) {
+        return <span title="Pagamento presumido no cadastro retroativo, sem desconto do saldo e sem data efetiva informada." className="inline-flex w-fit rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700">Pago (histórico presumido)</span>;
+    }
+
+    if (transaction.paidAt) {
+        return <span className="inline-flex w-fit rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Pago</span>;
+    }
+
+    if (transaction.balanceApplied === false) {
+        return <span className="inline-flex w-fit rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">Pendente</span>;
+    }
+
+    return null;
+}
+
 export function Transactions() {
     const today = new Date().toISOString().split('T')[0];
     const [categories, setCategories] = useState<ICategory[]>([]);
@@ -14,13 +32,23 @@ export function Transactions() {
     const [transactions, setTransactions] = useState<ITransaction[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const [filterDate, setFilterDate] = useState<string>("");
+    const [filterDate, setFilterDate] = useState(()=>{
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth()+1).padStart(2, '0');
+        return `${year}-${month}`;
+    });
     const [filterType, setFilterType] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
     const [searchTerm, setSearchTerm] = useState("");
 
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [assumePastInstallmentsPaid, setAssumePastInstallmentsPaid] = useState(true);
+    const monthParts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Bahia', year: 'numeric', month: '2-digit',
+    }).formatToParts(new Date());
+    const currentMonth = `${monthParts.find(part => part.type === 'year')!.value}-${monthParts.find(part => part.type === 'month')!.value}`;
     const [formData, setFormData] = useState({
         description: '',
         amount: 0,
@@ -61,24 +89,34 @@ export function Transactions() {
 
     }
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = async (transaction: ITransaction) => {
+        const isInstallment = Boolean(transaction.installmentGroupId);
         const result = await Swal.fire({
-            title: 'Você tem certeza?',
-            text: "Deseja realmente excluir esta transação?",
+            title: isInstallment ? 'Excluir parcela ou parcelamento?' : 'Excluir transação?',
+            text: isInstallment
+                ? 'Todo o parcelamento inclui parcelas de outros meses, pagas e pendentes. Valores descontados serão devolvidos às caixinhas. Parcelas pendentes e históricas presumidas não alteram o saldo.'
+                : 'Deseja excluir esta transação? Seu efeito no saldo será revertido.',
+            ...(isInstallment ? {
+                input: 'radio' as const,
+                inputOptions: { single: 'Só esta parcela', group: 'Todo o parcelamento' },
+                inputValue: 'single',
+            } : {}),
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#10b981', 
-            cancelButtonColor: '#ef4444',  
-            confirmButtonText: 'Sim, excluir!',
+            focusCancel: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Excluir',
             cancelButtonText: 'Cancelar'
         });
 
         if (result.isConfirmed) {
             try {
                 setIsLoading(true);
-                await TransactionService.delete(id);
-                toast.success("Transação excluída com sucesso!");
-                loadData();
+                const scope = isInstallment && result.value === 'group' ? 'group' : 'single';
+                await TransactionService.delete(transaction.id, scope);
+                toast.success(scope === 'group' ? 'Parcelamento excluído com sucesso!' : 'Transação excluída com sucesso!');
+                await loadData();
             } catch (error) {
                 console.error("Erro ao excluir a Transação", error);
                 toast.error("Erro ao excluir a transação.");
@@ -88,8 +126,26 @@ export function Transactions() {
         }
     };
 
+    const handlePayInstallment = async (id: string)=>{
+        try{
+            setIsLoading(true);
+            const response = await TransactionService.payInstallment(id);
+            toast.success("Transação Paga com sucesso!");
+            if (response.warning) {
+                toast.warning(response.warning, { autoClose: 7000 });
+            }
+            await loadData();
+        }catch(error){
+            console.error("Erro ao efetuar o pagamento", error);
+            toast.error("Erro ao efetuar o pagamento.");
+        }finally{
+            setIsLoading(false);
+        }
+    }
+
     const handleOpenNew = () => {
         setEditingId(null);
+        setAssumePastInstallmentsPaid(true);
         setFormData({ description: '', type: 'EXPENSE', amount: 0, accountId: '', destinationAccountId: '', categoryId: '', date: '', installments: 1 });
         setIsModalOpen(true);
     };
@@ -116,6 +172,7 @@ export function Transactions() {
                 description: formData.description,
                 type: formData.type as 'INCOME' | 'EXPENSE' | 'TRANSFER',
                 amount: formData.amount,
+                assumePastInstallmentsPaid: !editingId ? assumePastInstallmentsPaid : undefined,
                 accountId: formData.accountId,
                 destinationAccountId: formData.type === 'TRANSFER' ? formData.destinationAccountId : undefined,
                 categoryId: formData.type === 'TRANSFER' ? categories[0]?.id : formData.categoryId,
@@ -236,7 +293,12 @@ export function Transactions() {
 
                                         return (
                                             <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 text-gray-800">{transaction.description}</td>
+                                                <td className="px-6 py-4 text-gray-800">
+                                                    <div className="flex flex-col items-start gap-1">
+                                                        <span>{transaction.description}</span>
+                                                        <InstallmentStatus transaction={transaction} />
+                                                    </div>
+                                                </td>
                                                 <td className="px-6 py-4 text-gray-600">
                                                     {isTransfer ? (
                                                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border bg-blue-50 text-blue-600 border-blue-200">
@@ -265,18 +327,29 @@ export function Transactions() {
                                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.amount)}
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
-                                                    <button 
-                                                        onClick={() => handleEdit(transaction)}
-                                                        className="text-blue-600 hover:text-blue-800 mr-3 font-medium text-sm transition-colors cursor-pointer"
-                                                    >
-                                                        Editar
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleDelete(transaction.id)}
-                                                        className="text-red-600 hover:text-red-800 font-medium text-sm transition-colors cursor-pointer"
-                                                    >
-                                                        Excluir
-                                                    </button>
+                                                    <div className="flex flex-wrap items-center justify-center gap-3">
+                                                        {transaction.installmentGroupId && transaction.balanceApplied === false && !transaction.historicalPayment && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handlePayInstallment(transaction.id)}
+                                                                className="text-emerald-700 hover:text-emerald-900 font-medium text-sm transition-colors cursor-pointer"
+                                                            >
+                                                                Marcar como paga
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => handleEdit(transaction)}
+                                                            className="text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors cursor-pointer"
+                                                        >
+                                                            Editar
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(transaction)}
+                                                            className="text-red-600 hover:text-red-800 font-medium text-sm transition-colors cursor-pointer"
+                                                        >
+                                                            Excluir
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
@@ -297,6 +370,7 @@ export function Transactions() {
                                         <div key={transaction.id} className="p-4 bg-white hover:bg-gray-50 transition-colors flex justify-between items-center">
                                             <div className="flex flex-col gap-1 overflow-hidden">
                                                 <span className="font-semibold text-gray-800 truncate">{transaction.description}</span>
+                                                <InstallmentStatus transaction={transaction} />
                                                 <div className="flex items-center gap-2 text-xs text-gray-500">
                                                     <span>{transaction.create_at ? new Date(transaction.create_at).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : '-'}</span>
                                                     <span>•</span>
@@ -321,9 +395,18 @@ export function Transactions() {
                                                     {isExpense ? '-' : isTransfer ? '' : '+'} 
                                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.amount)}
                                                 </span>
-                                                <div className="flex gap-3 text-xs font-medium">
+                                                <div className="flex flex-wrap justify-end gap-3 text-xs font-medium">
+                                                    {transaction.installmentGroupId && transaction.balanceApplied === false && !transaction.historicalPayment && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handlePayInstallment(transaction.id)}
+                                                            className="text-emerald-700"
+                                                        >
+                                                            Marcar como paga
+                                                        </button>
+                                                    )}
                                                     <button onClick={() => handleEdit(transaction)} className="text-blue-600">Editar</button>
-                                                    <button onClick={() => handleDelete(transaction.id)} className="text-red-600">Excluir</button>
+                                                    <button onClick={() => handleDelete(transaction)} className="text-red-600">Excluir</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -503,6 +586,15 @@ export function Transactions() {
                                 )}
                             </div>
 
+                            {!editingId && formData.type === 'EXPENSE' && formData.installments > 1 && formData.date && formData.date.slice(0, 7) < currentMonth && (
+                                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                                    <label className="flex items-start gap-2">
+                                        <input type="checkbox" className="mt-1" checked={assumePastInstallmentsPaid} onChange={e => setAssumePastInstallmentsPaid(e.target.checked)} />
+                                        <span>Considerar pagas as parcelas anteriores a este mês</span>
+                                    </label>
+                                    <p className="mt-2 text-xs">Essas parcelas serão registradas como histórico presumido, sem descontar do saldo. Parcelas deste mês e futuras continuam pendentes. Desmarque se as parcelas antigas ainda estiverem em aberto.</p>
+                                </div>
+                            )}
                             <div className="mt-6 flex justify-end gap-3">
                                 <button 
                                     type="button"

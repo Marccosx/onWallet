@@ -19,11 +19,19 @@ function withGoal(account: Account) {
     return { ...account, goalPlan: calculateGoal(account, account.balance) };
 }
 
+function validateAccountType(value: unknown):Account["accountType"]{
+    if(value !== "AVAILABLE_CASH" && value !== "INVESTMENT"){
+        throw new Error("Tipo de conta inválido. Tipos válidos: AVAILABLE_CASH, INVESTMENT");
+    }
+    return value
+}
+
 export class AccountService implements IAccountService {
     async getAccounts() {
         const accounts = await prisma.account.findMany({ where: { userId: currentUserId() } });
         return accounts.map(withGoal);
     }
+
 
     async createAccount(input: unknown) {
         const data = inputObject(input);
@@ -31,10 +39,12 @@ export class AccountService implements IAccountService {
         if (!name) throw new Error("Informe o nome da caixinha.");
         const balance = validateMoney(data.balance ?? 0, "Saldo");
         const goal = parseGoal(data);
+        const type = data.accountType === undefined ? "AVAILABLE_CASH" : validateAccountType(data.accountType);
         calculateGoal(goal, balance);
         const account = await prisma.account.create({ data: {
             name, balance, tag: optionalText(data.tag, "Tag") ?? null,
             color: optionalText(data.color, "Cor") ?? null, ...goal, userId: currentUserId(),
+            accountType: type
         } });
         return withGoal(account);
     }
@@ -51,6 +61,7 @@ export class AccountService implements IAccountService {
         const goal = parseGoal(data, account);
         const name = data.name === undefined ? account.name : optionalText(data.name, "Nome");
         if (!name) throw new Error("Informe o nome da caixinha.");
+        const type = data.accountType === undefined ? account.accountType : validateAccountType(data.accountType);
         const balance = data.balance === undefined ? undefined : validateMoney(data.balance, "Saldo");
         calculateGoal(goal, balance ?? account.balance);
         const updated = await prisma.account.update({ where: { id, userId: currentUserId() }, data: {
@@ -58,6 +69,7 @@ export class AccountService implements IAccountService {
             ...(balance === undefined ? {} : { balance }),
             ...(data.tag === undefined ? {} : { tag: optionalText(data.tag, "Tag") ?? null }),
             ...(data.color === undefined ? {} : { color: optionalText(data.color, "Cor") ?? null }),
+            ...(data.accountType === undefined ? {} : { accountType:  type }),
         } });
         return withGoal(updated);
     }

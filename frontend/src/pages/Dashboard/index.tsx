@@ -4,6 +4,7 @@ import { DashboardService, type IDashboard } from "../../services/dashboard.serv
 import { CategoryService } from "../../services/category.service";
 import type { ICategory } from "../../types";
 import { renderIcon } from "../../utils/icons";
+import { PendingInstallments } from "./PendingInstallments";
 
 export function Dashboard() {
     const [summary, setSummary] = useState<IDashboard | null>(null);
@@ -60,9 +61,9 @@ export function Dashboard() {
             {/* Cards de Resumo */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-blue-500">
-                    <h3 className="text-sm font-medium text-gray-500 mb-2">Saldo Geral (Contas)</h3>
+                    <h3 className="text-sm font-medium text-gray-500 mb-2">Saldo disponível</h3>
                     <p className="text-3xl font-bold text-gray-800">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.currentAmount)}
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.availableAmount)}
                     </p>
                 </div>
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-emerald-500">
@@ -78,6 +79,20 @@ export function Dashboard() {
                     </p>
                 </div>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                    <h3 className="text-sm font-medium text-gray-500">Patrimônio total</h3>
+                    <p className="text-2xl font-bold text-gray-800">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.currentAmount)}</p>
+                    <p className="text-xs text-gray-500 mt-1">Saldo disponível + investimentos</p>
+                </div>
+                <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                    <h3 className="text-sm font-medium text-gray-500">Investido</h3>
+                    <p className="text-2xl font-bold text-violet-700">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(summary.investmentAmount)}</p>
+                    <p className="text-xs text-gray-500 mt-1">Saldo atual das caixinhas de investimento</p>
+                </div>
+            </div>
+            <PendingInstallments />
 
             {/* Despesas por Categoria com Gráfico */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">

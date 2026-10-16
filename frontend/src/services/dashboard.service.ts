@@ -2,6 +2,8 @@ import { api } from "./api";
 
 export interface IDashboard {
     currentAmount: number;
+    availableAmount: number;
+    investmentAmount: number;
     monthRecipe: number;
     monthExpense: number;
     ExpensePerCategory: { categoryId: string; _sum: { amount: number } }[];

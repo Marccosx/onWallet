@@ -120,9 +120,16 @@ transactionRouter.put("/:id",(req, res) => transactionController.updateTransacti
  * @swagger
  * /transactions/{id}:
  *   delete:
- *     summary: Deleta uma transação
+ *     summary: Exclui uma transação ou seu parcelamento e reverte os saldos aplicados
  *     tags: [Transactions]
  *     parameters:
+ *       - in: query
+ *         name: scope
+ *         description: single exclui apenas a transação; group exclui todas as parcelas do mesmo grupo do usuário.
+ *         schema:
+ *           type: string
+ *           enum: [single, group]
+ *           default: single
  *       - in: path
  *         name: id
  *         required: true
@@ -130,8 +137,68 @@ transactionRouter.put("/:id",(req, res) => transactionController.updateTransacti
  *           type: string
  *     responses:
  *       204:
- *         description: Transação deletada
+ *         description: Transação ou parcelamento excluído
+ *       400:
+ *         description: Escopo inválido, transação não encontrada ou sem parcelamento
  */
 transactionRouter.delete("/:id",(req, res) => transactionController.deleteTransaction(req, res));
 
+/**
+ * @swagger
+ * /transactions/{id}/pay:
+ *   post:
+ *     summary: Confirma o pagamento de uma parcela pendente
+ *     description: Desconta o valor de uma única parcela da caixinha e registra a data do pagamento. Exige saldo suficiente. Uma parcela já paga não é descontada novamente.
+ *     tags: [Transactions]
+ *     security:
+ *       - sessionCookie: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID da transação que representa a parcela pendente
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Parcela paga; retorna a transação atualizada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   format: uuid
+ *                 installmentGroupId:
+ *                   type: string
+ *                   format: uuid
+ *                 amount:
+ *                   type: number
+ *                   example: 400
+ *                 balanceApplied:
+ *                   type: boolean
+ *                   example: true
+ *                 paidAt:
+ *                   type: string
+ *                   format: date-time
+ *                 warning:
+ *                   type: string
+ *                   description: Aviso opcional quando o pagamento ultrapassa o orçamento do mês
+ *       400:
+ *         description: Parcela inexistente, já paga ou saldo insuficiente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *       401:
+ *         description: Sessão ausente ou inválida
+ */
+transactionRouter.post("/:id/pay", (req, res) =>
+  transactionController.payInstallment(req, res)
+);
 export default transactionRouter;

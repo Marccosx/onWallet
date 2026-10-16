@@ -20,8 +20,12 @@ export const TransactionService = {
         const response = await api.put(`/transactions/${id}`, data);
         return response.data;
     },
-    delete: async (id: string) : Promise<void> => {
-        await api.delete(`/transactions/${id}`);
-    }
+    delete: async (id: string, scope: 'single' | 'group' = 'single') : Promise<void> => {
+        await api.delete(`/transactions/${id}`, { params: { scope } });
+    },
+    payInstallment: async (id: string): Promise<ITransaction> => {
+    const response = await api.post(`/transactions/${id}/pay`);
+    return response.data;
+},
 }
 export default TransactionService

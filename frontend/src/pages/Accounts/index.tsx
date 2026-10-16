@@ -18,6 +18,7 @@ export function Accounts() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [goal, setGoal] = useState(initialGoal);
   const [formData, setFormData] = useState({
+    accountType: 'AVAILABLE_CASH' as IAccount['accountType'],
     name: '',
     tag: '',
     balance: 0,
@@ -41,7 +42,7 @@ export function Accounts() {
 
   const handleOpenNew = () => {
     setEditingId(null);
-    setFormData({ name: '', tag: '', balance: 0, color: '#8A05BE' });
+    setFormData({ accountType: 'AVAILABLE_CASH', name: '', tag: '', balance: 0, color: '#8A05BE' });
     setGoal(initialGoal());
     setIsModalOpen(true);
   };
@@ -51,6 +52,7 @@ export function Accounts() {
     setEditingId(account.id);
     setFormData({
       name: account.name,
+      accountType: account.accountType,
       tag: account.tag || '',
       balance: account.balance,
       color: account.color || '#CBD5E1'
@@ -88,6 +90,7 @@ export function Accounts() {
     try {
       const accountData = {
         name: formData.name,
+        accountType: formData.accountType,
         tag: formData.tag,
         balance: Number(formData.balance),
         color: formData.color,
@@ -136,19 +139,26 @@ export function Accounts() {
         </div>
       </PageHeader>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {accounts.length === 0 ? (
                   <div className="col-span-full p-8 text-center text-gray-500 bg-white rounded-xl border border-gray-100 border-dashed">
                       Você ainda não criou nenhuma caixinha. Que tal guardar para uma "Viagem"?
                   </div>
               ) : (
-                  accounts.map(account => (
+                  [
+                      { id: 'without-goal', title: 'Sem meta', accounts: accounts.filter(account => account.goalAmount == null) },
+                      { id: 'with-goal', title: 'Com meta', accounts: accounts.filter(account => account.goalAmount != null) },
+                  ].filter(group => group.accounts.length > 0).map(group => (
+                      <section key={group.id} aria-labelledby={group.id} className="space-y-3">
+                          <h2 id={group.id} className="text-lg font-bold text-gray-800">{group.title} <span className="text-sm font-normal text-gray-500">({group.accounts.length})</span></h2>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+                  {group.accounts.map(account => (
                       <div key={account.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-col relative group overflow-hidden transition-all hover:shadow-md">
                           <div className="absolute top-0 left-0 w-full h-1.5" style={{ backgroundColor: account.color }}></div>
                           
-                          <div className="flex justify-between items-start mb-4 mt-2">
-                              <div>
+                          <div className="flex flex-wrap justify-between items-start gap-2 mb-4 mt-2">
+                              <div className="min-w-0 break-words">
                                   <h3 className="font-bold text-gray-800 text-lg">{account.name}</h3>
+                                  <p className="text-xs font-medium text-emerald-700 mt-1">{account.accountType === 'INVESTMENT' ? 'Investimento' : 'Saldo disponível'}</p>
                                   <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-md mt-1 inline-block">
                                       {account.tag || 'Sem tag'}
                                   </span>
@@ -159,7 +169,7 @@ export function Accounts() {
                               </div>
                           </div>
                           
-                          <div className="mt-auto pt-4 border-t border-gray-50">
+                          <div className="pt-4 border-t border-gray-50">
                               <p className="text-sm text-gray-500 mb-1">Saldo Guardado</p>
                               <p className="text-2xl font-bold text-gray-800">
                                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.balance)}
@@ -167,9 +177,11 @@ export function Accounts() {
                           </div>
                           {account.goalPlan && account.goalAmount != null && <GoalSummary plan={account.goalPlan} amount={account.goalAmount} />}
                       </div>
+                  ))}
+                          </div>
+                      </section>
                   ))
               )}
-          </div>
 
           {isModalOpen && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -237,6 +249,16 @@ export function Accounts() {
                           </div>
 
                           <GoalPlanner value={goal} onChange={setGoal} balance={formData.balance} />
+                          <div>
+                              <label htmlFor="account-type" className="block text-sm font-medium text-gray-700 mb-1">Tipo de caixinha</label>
+                              <select id="account-type" value={formData.accountType}
+                                  onChange={(e) => setFormData({...formData, accountType: e.target.value as IAccount['accountType']})}
+                                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500">
+                                  <option value="AVAILABLE_CASH">Saldo disponível</option>
+                                  <option value="INVESTMENT">Investimento</option>
+                              </select>
+                              <p className="text-xs text-gray-500 mt-1">Investimentos entram no patrimônio total, separados do saldo disponível. Alterar o tipo não movimenta dinheiro.</p>
+                          </div>
 
                           <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
                               <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors cursor-pointer">Cancelar</button>

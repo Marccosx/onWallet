@@ -64,17 +64,33 @@ export class TransactionController {
 
     async deleteTransaction(req: Request, res: Response) {
         const id = req.params.id as string;
+        const scope = req.query.scope ?? "single";
         if(!id){
             res.status(400).json({error: "Request params id is missing"});
             return;
         }
+        if(scope !== "single" && scope !== "group"){
+            res.status(400).json({error: "Request query scope is invalid"});
+            return;
+        }
         try {
-            await this.transactionService.deleteTransaction(id);
+            await this.transactionService.deleteTransaction(id, scope);
             res.status(204).send();
         }
         catch (error) {
             res.status(400).json({ error: (error as Error).message });
         }   
+    }
+
+    async payInstallment(req: Request, res: Response) {
+    const id = req.params.id as string;
+
+    try {
+        const parcela = await this.transactionService.payInstallment(id);
+        res.status(200).json(parcela);
+    } catch (error) {
+        res.status(400).json({ error: (error as Error).message });
+    }
     }
 }
 

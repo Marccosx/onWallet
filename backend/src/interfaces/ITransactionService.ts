@@ -6,5 +6,6 @@ export interface ITransactionService{
     getTransactionById(id: string): Promise<Transaction> 
     createTransaction(data: any): Promise<Transaction>
     updateTransaction(id: string, data: any): Promise<Transaction>
-    deleteTransaction(id: string): Promise<void>
+    deleteTransaction(id: string, scope?: "single" | "group"): Promise<void>
+    payInstallment(id: string): Promise<Transaction>;
 }

@@ -2,6 +2,58 @@
 
 ## O que mudou
 
+### Saldo disponível e investimentos
+
+`accountType` permite escolher `AVAILABLE_CASH` (Saldo disponível) ou
+`INVESTMENT` (Investimento) na criação e edição. Caixinhas existentes começam
+como saldo disponível e podem ser reclassificadas manualmente. O tipo aparece
+nos cartões; metas continuam independentes dessa classificação.
+
+O dashboard retorna `availableAmount`, `investmentAmount` e `currentAmount`
+(patrimônio total). São saldos atuais, separados dos movimentos do mês.
+Alterar apenas o tipo não movimenta dinheiro. Tipos inválidos são rejeitados;
+omitir o tipo numa edição preserva o anterior.
+
+Validação: 46 testes em 4 arquivos fonte passaram, incluindo persistência do
+tipo, edição parcial, entradas inválidas e totais isolados por usuário.
+TypeScript backend e build frontend passaram. Validação visual pendente.
+Migration SQLite criada; equivalente PostgreSQL para o tipo ainda pendente.
+
+### Saldo disponível e investimentos
+
+`accountType` permite escolher `AVAILABLE_CASH` (Saldo disponível) ou
+`INVESTMENT` (Investimento) na criação e edição. Caixinhas existentes começam
+como saldo disponível e podem ser reclassificadas manualmente. O tipo aparece
+nos cartões; metas continuam independentes dessa classificação.
+
+O dashboard retorna `availableAmount`, `investmentAmount` e `currentAmount`
+(patrimônio total). São saldos atuais, separados dos movimentos do mês.
+Alterar apenas o tipo não movimenta dinheiro. Tipos inválidos são rejeitados;
+omitir o tipo numa edição preserva o anterior.
+
+Validação: 46 testes em 4 arquivos fonte passaram, incluindo persistência do
+tipo, edição parcial, entradas inválidas e totais isolados por usuário.
+TypeScript backend e build frontend passaram. Validação visual pendente.
+Migration SQLite criada; equivalente PostgreSQL para o tipo ainda pendente.
+
+### Saldo disponível e investimentos
+
+O campo `accountType` permite escolher `AVAILABLE_CASH` (Saldo disponível) ou
+`INVESTMENT` (Investimento) na criação e edição. Caixinhas existentes começam
+como saldo disponível e podem ser reclassificadas manualmente. O tipo aparece
+nos cartões; metas continuam independentes dessa classificação.
+
+O dashboard retorna `availableAmount`, `investmentAmount` e `currentAmount`
+(patrimônio total). São saldos atuais, separados dos movimentos do mês.
+Alterar apenas o tipo não movimenta dinheiro. Tipos inválidos são rejeitados;
+omitir o tipo numa edição preserva o anterior.
+
+Validação desta etapa: 46 testes em 4 arquivos fonte passaram, incluindo
+persistência do tipo, edição parcial, entradas inválidas e totais isolados por
+usuário. TypeScript do backend e build do frontend passaram. Validação visual
+em navegador pendente. Migration SQLite criada pelo usuário; equivalente
+PostgreSQL ainda pendente para essa classificação.
+
 Uma caixinha pode ser criada sem dinheiro: saldo vazio ou zero resulta em R$ 0,00.
 Opcionalmente, ela pode ter uma meta de economia. Ao criar ou editar, marque
 **Planejar uma meta** e escolha:
@@ -24,6 +76,11 @@ Planejar ou alterar uma meta não cria receitas, despesas, transferências ou de
 automáticos. Para adicionar dinheiro, registre uma entrada ou uma transferência
 usando os recursos existentes. A edição direta do saldo já existia e foi mantida.
 O total de dinheiro da tela continua somando somente os saldos.
+
+A listagem separa caixinhas `Sem meta` e `Com meta`, mostrando apenas grupos
+com itens. Os cartões têm altura natural, evitando que um planejamento longo
+estique caixinhas vizinhas. Essa organização é independente do tipo da conta:
+tanto saldo disponível quanto investimento podem ter metas.
 
 Uma visão de dívidas/parcelas futuras não foi incluída nesta entrega: é um conceito
 diferente e ainda precisa ter seu comportamento definido.

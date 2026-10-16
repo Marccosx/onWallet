@@ -37,10 +37,11 @@ export class BudgetService implements IBudgetService{
                         categoryId: budget.categoryId,
                         category: { userId: currentUserId() },
                         type: "EXPENSE",
-                        create_at: {
-                            gte: startDate,
-                            lt: endDate
-                        },
+                        balanceApplied: true,
+                        OR: [
+                            { installmentGroupId: null, create_at: { gte: startDate, lt: endDate } },
+                            { installmentGroupId: { not: null }, paidAt: { gte: startDate, lt: endDate } },
+                        ],
                     },
                 });
                 

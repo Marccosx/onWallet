@@ -34,6 +34,16 @@ const swaggerOptions = {
       version: "1.0.0",
       description: "API for OnWallet application"
     },
+    components: {
+      securitySchemes: {
+        sessionCookie: {
+          type: "apiKey",
+          in: "cookie",
+          name: "onwallet_session",
+          description: "Cookie HttpOnly retornado por POST /auth/login",
+        },
+      },
+    },
     servers: [
       {
         url: process.env.API_URL || `http://localhost:${port}`,

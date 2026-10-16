@@ -10,6 +10,7 @@ export interface GoalPlan {
 }
 
 interface IAccount {
+    accountType: 'AVAILABLE_CASH' | 'INVESTMENT';
     id: string;
     name: string;
     tag?: string;
@@ -42,6 +43,12 @@ interface ITransaction {
     destinationAccountId?: string;
     categoryId: string;
     type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    installmentGroupId?: string | null;
+    installmentNumber?: number | null;
+    installmentCount?: number | null;
+    balanceApplied?: boolean;
+    paidAt?: string | null;
+    historicalPayment?: boolean;
 }
 
 interface IBudget{

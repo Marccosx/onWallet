@@ -16,13 +16,13 @@ export class DashboardService implements IDashboardService {
         const ExpensePerCategory= await this.getExpenseTransactionsPerCategory(data);
 
         const monthRecipe = TotalIncome._sum.amount || 0;
-        const currentAmount = cA._sum.balance || 0;
+        const { currentAmount, availableAmount, investmentAmount } = cA;
         const monthExpense = mExpense._sum.amount || 0;
         
 
 
         const Dashboard: dashBoardDTO = 
-        {currentAmount, monthExpense, monthRecipe, ExpensePerCategory: ExpensePerCategory ?? []}
+        {currentAmount, monthExpense, monthRecipe,availableAmount, investmentAmount, ExpensePerCategory: ExpensePerCategory ?? []}
 
         return Dashboard;
 
@@ -34,7 +34,23 @@ export class DashboardService implements IDashboardService {
                 _sum: {balance:true},
                 where: { userId: currentUserId() },
             });
-            return AmountAccounts;
+            const available = await prisma.account.aggregate({
+                where:{
+                    userId: currentUserId(),
+                    accountType: "AVAILABLE_CASH",
+                },
+                _sum: {balance:true},
+            });
+            const availableAmount = available._sum.balance || 0;
+            const investment = await prisma.account.aggregate({
+                where:{
+                    userId: currentUserId(),
+                    accountType: "INVESTMENT",
+                },
+                _sum: {balance:true},
+            });
+            const investmentAmount = investment._sum.balance || 0;
+            return {currentAmount : AmountAccounts._sum.balance || 0, availableAmount, investmentAmount};
         }catch(error){
             throw new Error ("Error for searching accounts balance")
         }
@@ -63,7 +79,16 @@ export class DashboardService implements IDashboardService {
         try{
             const ExpenseTransactions = await prisma.transaction.aggregate({
                 _sum: {amount:true},
-                where:{create_at: {lte:date[1], gte:date[0]}, type:'EXPENSE', account: { userId: currentUserId() }}
+                where:{
+                    type:'EXPENSE',
+                    account: { userId: currentUserId() },
+                    balanceApplied: true,
+                    OR: [
+                        { installmentGroupId: null, create_at: { gte: date[0], lt: date[1] } },
+                        { installmentGroupId: { not: null }, paidAt: { gte: date[0], lt: date[1] } },
+                    ],
+                },
+
             });
             return ExpenseTransactions;
         }catch(error){
@@ -81,7 +106,15 @@ export class DashboardService implements IDashboardService {
             const CategoriesTransactions = await prisma.transaction.groupBy({
                 by:['categoryId'],
                 _sum:{amount:true},
-                where:{create_at: {lte:date[1], gte:date[0]}, type:'EXPENSE', account: { userId: currentUserId() }},
+                where:{
+                    type:'EXPENSE',
+                    account: { userId: currentUserId() },
+                    balanceApplied: true,
+                    OR: [
+                        { installmentGroupId: null, create_at: { gte: date[0], lt: date[1] } },
+                        { installmentGroupId: { not: null }, paidAt: { gte: date[0], lt: date[1] } },
+                    ],
+                },
                 orderBy: {_count: {amount: 'desc'}}
         });
         return CategoriesTransactions || null;
